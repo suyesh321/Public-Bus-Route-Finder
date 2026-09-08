@@ -226,7 +226,7 @@ locally:
 ### 1️⃣ Clone or download the project
 
 ```
-git clone https://github.com/YOUR-USERNAME/YOUR-REPOSITORY.git](https://github.com/anush-821/Public-Bus-Route-Finder-Kathmandu-Valley.git
+git clone https://github.com/anush-821/Public-Bus-Route-Finder-Kathmandu-Valley.git
 cd BusRouteFinder-KathmanduValley
 ```
 
