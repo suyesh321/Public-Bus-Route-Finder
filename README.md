@@ -1,14 +1,30 @@
-# 🚌 Public Bus Route Finder — Kathmandu Valley
+# 🚌 Public Bus Route Finder — Kathmandu Valley (Web Edition & Desktop App)
 
-A desktop **Java + JavaFX + MySQL** application that helps passengers find the
+A modern **Web Application & Java backend** that helps passengers find the
 cheapest or shortest route between any two bus stops in the Kathmandu Valley
-(Kathmandu, Lalitpur, Bhaktapur), even when it requires transferring between
-different bus operators. Admins can manage stops, routes, and fares from a
-built-in console.
+(Kathmandu, Lalitpur, Bhaktapur), featuring an interactive **Leaflet.js transit map**,
+**Dijkstra's algorithm**, multi-bus transfer detection, fare calculations, and a full
+**Admin Management Console**.
 
-Built in the same architectural style as other academic Java/JavaFX/MySQL
-desktop projects: layered into `model`, `dao`, `service`, `gui`, and `util`
-packages, with a MySQL backend and a JavaFX front end.
+Now available as a responsive **Web Application** (served via the zero-dependency
+built-in Java `WebServer` or running standalone in any modern browser) alongside
+the original JavaFX desktop application.
+
+---
+
+## 🚀 Quick Start (Web Application)
+
+### Option 1: Run with Java Backend Server
+Double click `run-web.bat` or execute in your terminal:
+```bash
+# Compile and run the Java WebServer
+javac -cp "src;lib/*" -d out/production/Public-Bus-Route-Finder-Kathmandu-Valley src/model/enums/*.java src/model/*.java src/service/*.java src/util/*.java src/server/*.java
+java -cp "out/production/Public-Bus-Route-Finder-Kathmandu-Valley;lib/*" server.WebServer
+```
+Then open: **[http://localhost:8080](http://localhost:8080)**
+
+### Option 2: Run Standalone Web App (No setup required)
+Simply open `web/index.html` in Google Chrome, Microsoft Edge, or Firefox! The client-side transit engine and interactive Kathmandu Valley map will run immediately with pre-bundled transit data.
 
 ---
 

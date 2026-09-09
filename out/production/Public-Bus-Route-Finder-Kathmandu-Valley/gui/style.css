@@ -1,0 +1,30 @@
+.root-pane {
+    -fx-background-color: linear-gradient(to bottom right, #eef5ff, #ffffff);
+}
+
+.title-label {
+    -fx-font-size: 22px;
+    -fx-font-weight: bold;
+    -fx-text-fill: #10336b;
+}
+
+.subtitle-label {
+    -fx-font-size: 13px;
+    -fx-text-fill: #55627a;
+}
+
+.status-label {
+    -fx-text-fill: #c0392b;
+    -fx-font-size: 12px;
+}
+
+.button {
+    -fx-background-color: #1a56c9;
+    -fx-text-fill: white;
+    -fx-background-radius: 6;
+    -fx-padding: 6 14 6 14;
+}
+
+.button:hover {
+    -fx-background-color: #123f96;
+}

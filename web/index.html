@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Kathmandu Transit — Public Bus Route Finder</title>
+  <meta name="description" content="Find the cheapest and shortest public bus routes across Kathmandu, Lalitpur, and Bhaktapur using Dijkstra's transit algorithm.">
+
+  <!-- Google Fonts: Outfit & Inter -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap" rel="stylesheet">
+
+  <!-- Leaflet Map CSS -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+
+  <!-- Main Stylesheet -->
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <!-- App Container -->
+  <div class="app-layout">
+    
+    <!-- Top Navigation Bar -->
+    <header class="navbar">
+      <div class="brand">
+        <div class="logo-icon">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <rect x="3" y="4" width="18" height="15" rx="3" />
+            <path d="M4 11h16" />
+            <path d="M8 15h.01" />
+            <path d="M16 15h.01" />
+            <path d="M6 19v2" />
+            <path d="M18 19v2" />
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>Kathmandu Transit</h1>
+          <span class="badge-tag">Valley Bus Network</span>
+        </div>
+      </div>
+
+      <nav class="nav-links">
+        <button id="nav-planner" class="nav-btn active" title="Trip Planner">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
+          <span>Route Finder</span>
+        </button>
+        <button id="nav-routes" class="nav-btn" title="Bus Lines Directory">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
+          <span>Bus Routes</span>
+        </button>
+        <button id="nav-admin" class="nav-btn" title="Admin Console">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm1 14.93V17a1 1 0 0 1-2 0v-.07A7 7 0 0 1 5.07 11H5a1 1 0 0 1 0-2h.07A7 7 0 0 1 11 3.07V3a1 1 0 0 1 2 0v.07A7 7 0 0 1 18.93 9H19a1 1 0 0 1 0 2h-.07A7 7 0 0 1 13 16.93z"/></svg>
+          <span>Admin Portal</span>
+        </button>
+      </nav>
+
+      <div class="nav-actions">
+        <!-- Backend Status Pill -->
+        <div id="backend-status" class="status-indicator online" title="Backend Status">
+          <span class="status-dot"></span>
+          <span class="status-text">Backend Online</span>
+        </div>
+
+        <!-- Theme Toggle -->
+        <button id="theme-toggle" class="icon-btn" title="Toggle Light/Dark Theme" aria-label="Toggle theme">
+          <svg class="moon-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+          <svg class="sun-icon" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        </button>
+
+        <!-- User Profile / Login -->
+        <div class="user-control">
+          <button id="auth-btn" class="user-btn">
+            <span class="user-avatar">👤</span>
+            <span id="user-display-name">Guest / Passenger</span>
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Workspace -->
+    <main class="main-content">
+      
+      <!-- Left Sidebar / Control Panel -->
+      <aside class="sidebar-panel">
+        
+        <!-- SECTION 1: TRIP PLANNER -->
+        <section id="panel-planner" class="panel-section active">
+          <div class="section-header">
+            <h2>Plan Your Journey</h2>
+            <p class="subtitle">Cheapest & shortest bus connections in Kathmandu Valley</p>
+          </div>
+
+          <!-- Trip Search Form -->
+          <form id="route-form" class="route-form" onsubmit="return false;">
+            
+            <!-- From Stop -->
+            <div class="input-group">
+              <label for="from-stop-select">
+                <span class="indicator-dot from-dot"></span>
+                <span>Origin (Boarding Stop)</span>
+              </label>
+              <div class="select-wrapper">
+                <select id="from-stop-select" required>
+                  <option value="" disabled selected>Select origin bus stop...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Swap Button -->
+            <div class="swap-divider">
+              <button type="button" id="swap-stops-btn" class="swap-btn" title="Swap Origin & Destination">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polyline points="7 10 12 15 17 10"></polyline>
+                  <line x1="12" y1="15" x2="12" y2="3"></line>
+                  <polyline points="17 14 12 9 7 14"></polyline>
+                  <line x1="12" y1="9" x2="12" y2="21"></line>
+                </svg>
+              </button>
+            </div>
+
+            <!-- To Stop -->
+            <div class="input-group">
+              <label for="to-stop-select">
+                <span class="indicator-dot to-dot"></span>
+                <span>Destination (Alighting Stop)</span>
+              </label>
+              <div class="select-wrapper">
+                <select id="to-stop-select" required>
+                  <option value="" disabled selected>Select destination bus stop...</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Optimization Criterion -->
+            <div class="optimization-options">
+              <span class="opt-title">Optimization Preference</span>
+              <div class="opt-toggles">
+                <label class="opt-label">
+                  <input type="radio" name="optimizeBy" value="FARE" checked>
+                  <div class="opt-card">
+                    <span class="opt-icon">💰</span>
+                    <div class="opt-text">
+                      <strong>Cheapest Fare</strong>
+                      <span>Minimize NPR</span>
+                    </div>
+                  </div>
+                </label>
+
+                <label class="opt-label">
+                  <input type="radio" name="optimizeBy" value="DISTANCE">
+                  <div class="opt-card">
+                    <span class="opt-icon">⚡</span>
+                    <div class="opt-text">
+                      <strong>Shortest Path</strong>
+                      <span>Minimize Kilometers</span>
+                    </div>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Quick Hub Presets -->
+            <div class="quick-presets">
+              <span class="preset-title">Popular Transit Hubs:</span>
+              <div class="preset-pills">
+                <button type="button" class="preset-pill" data-stop="Ratna Park">Ratna Park</button>
+                <button type="button" class="preset-pill" data-stop="Koteshwor">Koteshwor</button>
+                <button type="button" class="preset-pill" data-stop="Kalanki">Kalanki</button>
+                <button type="button" class="preset-pill" data-stop="Boudha">Boudha</button>
+                <button type="button" class="preset-pill" data-stop="Lagankhel">Lagankhel</button>
+                <button type="button" class="preset-pill" data-stop="Bhaktapur Durbar Square">Bhaktapur</button>
+              </div>
+            </div>
+
+            <!-- Action Button -->
+            <button type="submit" id="find-route-btn" class="primary-btn">
+              <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+              <span>Calculate Optimal Journey</span>
+            </button>
+          </form>
+
+          <!-- Journey Result Card -->
+          <div id="journey-result" class="journey-result-container hidden">
+            <div class="result-header">
+              <div class="result-headline">
+                <h3>Recommended Route</h3>
+                <span id="route-mode-badge" class="mode-badge">Cheapest</span>
+              </div>
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <span class="metric-label">Total Fare</span>
+                  <span id="metric-fare" class="metric-val highlight-green">NPR 0</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Total Distance</span>
+                  <span id="metric-distance" class="metric-val">0.0 km</span>
+                </div>
+                <div class="metric-card">
+                  <span class="metric-label">Bus Transfers</span>
+                  <span id="metric-transfers" class="metric-val">Direct</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- Itinerary Timeline -->
+            <div class="itinerary-wrap">
+              <h4>Turn-by-Turn Transit Directions</h4>
+              <div id="timeline-container" class="timeline-list">
+                <!-- Injected via JavaScript -->
+              </div>
+            </div>
+          </div>
+
+          <!-- Empty / Welcome state -->
+          <div id="planner-placeholder" class="placeholder-box">
+            <div class="placeholder-icon">🗺️</div>
+            <h3>Select Two Bus Stops</h3>
+            <p>Choose an origin and destination to see optimal routes, fare estimates, bus transfers, and interactive live map visualization.</p>
+          </div>
+        </section>
+
+        <!-- SECTION 2: BUS ROUTES DIRECTORY -->
+        <section id="panel-routes" class="panel-section hidden">
+          <div class="section-header">
+            <h2>Valley Bus Routes</h2>
+            <p class="subtitle">Explore active public bus lines and operators</p>
+          </div>
+          <div id="routes-directory-list" class="routes-directory-grid">
+            <!-- Injected via JS -->
+          </div>
+        </section>
+
+        <!-- SECTION 3: ADMIN CONSOLE -->
+        <section id="panel-admin" class="panel-section hidden">
+          <div class="section-header">
+            <h2>Admin Transit Console</h2>
+            <p class="subtitle">Manage bus stops, routes, and network segments</p>
+          </div>
+
+          <!-- Admin Auth Notice if not admin -->
+          <div id="admin-lock-banner" class="admin-locked-box">
+            <div class="lock-icon">🔒</div>
+            <h3>Admin Access Restricted</h3>
+            <p>Log in as an administrator to add stops, create bus routes, or connect transit segments.</p>
+            <button id="prompt-admin-login-btn" class="secondary-btn">Login as Transit Admin</button>
+          </div>
+
+          <!-- Admin Tools (visible when logged in as admin) -->
+          <div id="admin-tools-container" class="admin-content hidden">
+            <!-- Admin Sub Tabs -->
+            <div class="admin-tab-bar">
+              <button class="admin-tab-btn active" data-tab="tab-stops">Manage Stops</button>
+              <button class="admin-tab-btn" data-tab="tab-routes">Manage Routes</button>
+              <button class="admin-tab-btn" data-tab="tab-segments">Add Segment</button>
+            </div>
+
+            <!-- Tab 1: Stops -->
+            <div id="tab-stops" class="admin-tab-pane active">
+              <div class="admin-pane-header">
+                <h3>Add New Bus Stop</h3>
+                <span class="hint">Click anywhere on the map to auto-fill latitude & longitude!</span>
+              </div>
+              <form id="add-stop-form" class="compact-form">
+                <div class="form-row">
+                  <input type="text" id="new-stop-name" placeholder="Stop Name (e.g. Pulchowk)" required>
+                  <input type="text" id="new-stop-area" placeholder="Area (e.g. Lalitpur)" required>
+                </div>
+                <div class="form-row">
+                  <input type="number" step="0.0001" id="new-stop-lat" placeholder="Latitude (e.g. 27.6780)" required>
+                  <input type="number" step="0.0001" id="new-stop-lon" placeholder="Longitude (e.g. 85.3170)" required>
+                </div>
+                <button type="submit" class="primary-btn">➕ Save Bus Stop</button>
+              </form>
+
+              <div class="existing-list-header">
+                <h4>Registered Stops (<span id="stops-count">18</span>)</h4>
+                <input type="text" id="stop-search-filter" class="search-mini" placeholder="Filter stops...">
+              </div>
+              <div id="admin-stops-table" class="admin-data-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Tab 2: Routes -->
+            <div id="tab-routes" class="admin-tab-pane hidden">
+              <div class="admin-pane-header">
+                <h3>Create New Bus Route</h3>
+              </div>
+              <form id="add-route-form" class="compact-form">
+                <div class="form-row">
+                  <input type="text" id="new-route-name" placeholder="Route Name (e.g. Route 7: Lagankhel - Koteshwor)" required>
+                </div>
+                <div class="form-row">
+                  <input type="text" id="new-route-operator" placeholder="Operator (e.g. Sajha Yatayat)" required>
+                  <input type="number" step="0.5" id="new-route-fare" placeholder="Fare Rate (NPR/km, e.g. 4.5)" value="4.5" required>
+                </div>
+                <button type="submit" class="primary-btn">➕ Create Route</button>
+              </form>
+
+              <div class="existing-list-header">
+                <h4>Active Bus Routes (<span id="routes-count">6</span>)</h4>
+              </div>
+              <div id="admin-routes-table" class="admin-data-list">
+                <!-- Injected via JS -->
+              </div>
+            </div>
+
+            <!-- Tab 3: Segments -->
+            <div id="tab-segments" class="admin-tab-pane hidden">
+              <div class="admin-pane-header">
+                <h3>Connect Route Segment (Edge)</h3>
+                <p class="hint">Links two stops together as part of a bus route.</p>
+              </div>
+              <form id="add-segment-form" class="compact-form">
+                <div class="form-row">
+                  <select id="segment-route-select" required>
+                    <option value="" disabled selected>Select bus route...</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <select id="segment-from-select" required>
+                    <option value="" disabled selected>From Stop...</option>
+                  </select>
+                  <select id="segment-to-select" required>
+                    <option value="" disabled selected>To Stop...</option>
+                  </select>
+                </div>
+                <div class="form-row">
+                  <input type="number" step="0.1" id="segment-distance" placeholder="Distance (km, e.g. 2.4)" required>
+                  <input type="number" step="1" id="segment-fare" placeholder="Fare (NPR, e.g. 15)" required>
+                  <input type="number" step="1" id="segment-order" placeholder="Seq Order" value="1" required>
+                </div>
+                <button type="submit" class="primary-btn">🔗 Add Segment to Graph</button>
+              </form>
+            </div>
+
+            <!-- Reset Data Action -->
+            <div class="admin-footer-actions">
+              <button id="reset-data-btn" class="danger-outline-btn">🔄 Reset to Kathmandu Valley Defaults</button>
+            </div>
+          </div>
+        </section>
+
+      </aside>
+
+      <!-- Right Map View Container -->
+      <div class="map-container">
+        <div id="leaflet-map"></div>
+
+        <!-- Floating Map Overlay Controls -->
+        <div class="map-floating-overlay">
+          <div class="legend-card">
+            <span class="legend-title">Kathmandu Valley Transit</span>
+            <div class="legend-items">
+              <span class="legend-pill" style="--c:#10b981"><span class="dot"></span> Sajha</span>
+              <span class="legend-pill" style="--c:#f97316"><span class="dot"></span> Nepal Yatayat</span>
+              <span class="legend-pill" style="--c:#0ea5e9"><span class="dot"></span> City Bus</span>
+              <span class="legend-pill" style="--c:#a855f7"><span class="dot"></span> Bhaktapur</span>
+              <span class="legend-pill" style="--c:#f59e0b"><span class="dot"></span> Boudha Sewa</span>
+            </div>
+          </div>
+
+          <button id="recenter-map-btn" class="map-action-pill" title="Recenter to Valley Center">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
+            <span>Center Valley</span>
+          </button>
+        </div>
+
+        <!-- Map Click Notice Pill -->
+        <div id="map-click-indicator" class="map-click-banner hidden">
+          <span>Click on any stop to set as <strong>Origin</strong> or <strong>Destination</strong></span>
+        </div>
+      </div>
+
+    </main>
+  </div>
+
+  <!-- Login Modal -->
+  <div id="auth-modal" class="modal-overlay hidden">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-group">
+          <h3>User Authentication</h3>
+          <p>Login to access Admin controls or customize passenger preferences</p>
+        </div>
+        <button id="close-modal-btn" class="close-btn" aria-label="Close modal">&times;</button>
+      </div>
+      
+      <form id="login-form" class="modal-form">
+        <div class="form-group">
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" value="admin@ktmbus.gov.np" required>
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" value="admin123" required>
+        </div>
+
+        <div class="auth-demo-credentials">
+          <span>Quick Demo Logins:</span>
+          <div class="demo-chips">
+            <button type="button" class="demo-chip" onclick="fillLogin('admin@ktmbus.gov.np','admin123')">🔑 Admin Demo</button>
+            <button type="button" class="demo-chip" onclick="fillLogin('passenger@example.com','passenger123')">👤 Passenger Demo</button>
+          </div>
+        </div>
+
+        <div id="login-error-msg" class="error-banner hidden"></div>
+
+        <div class="modal-actions">
+          <button type="button" id="continue-guest-btn" class="secondary-btn">Continue as Guest</button>
+          <button type="submit" class="primary-btn">Sign In</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-wrapper"></div>
+
+  <!-- Leaflet JS -->
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+  <!-- Application Logic -->
+  <script src="app.js"></script>
+</body>
+</html>
