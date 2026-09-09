@@ -372,7 +372,7 @@ Java
 
 ---
 
-## 📚 Academic Project
+## Academic Project
 
 This project was developed as a Java Object-Oriented Programming / Software
 Development project, applying graph algorithms and layered application
@@ -380,4 +380,4 @@ design to a real-world municipal transit scenario in the Kathmandu Valley.
 
 ---
 
-**Built with ☕ Java + 🎨 JavaFX + 🗄️ MySQL**
+**Built with Java + MySQL + HTML + Javascript + CSS**
