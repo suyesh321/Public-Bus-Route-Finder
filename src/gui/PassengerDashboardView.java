@@ -109,7 +109,6 @@ public class PassengerDashboardView {
         HBox optionsRow = new HBox(20, cheapestBtn, shortestBtn, findBtn);
         optionsRow.setAlignment(Pos.CENTER_LEFT);
 
-        HBox topBar = new HBox(heading);
         HBox.setHgrow(heading, javafx.scene.layout.Priority.ALWAYS);
         HBox topBarWithLogout = new HBox(20, heading, logoutBtn);
         topBarWithLogout.setAlignment(Pos.CENTER_LEFT);

@@ -11,8 +11,6 @@ import java.util.List;
 
 public class BusRouteDAOImpl implements BusRouteDAO {
 
-    private final BusStopDAO stopDAO = new BusStopDAOImpl();
-
     @Override
     public List<BusRoute> getAllRoutes() {
         List<BusRoute> routes = new ArrayList<>();

@@ -71,6 +71,7 @@ public class AdminDashboardView {
         stage.show();
     }
 
+    @SuppressWarnings("unchecked")
     private VBox buildStopsTab() {
         stopTable = new TableView<>();
         TableColumn<BusStop, Number> idCol = new TableColumn<>("ID");
@@ -152,6 +153,7 @@ public class AdminDashboardView {
         return box;
     }
 
+    @SuppressWarnings("unchecked")
     private VBox buildRoutesTab() {
         routeTable = new TableView<>();
         TableColumn<BusRoute, Number> idCol = new TableColumn<>("ID");
