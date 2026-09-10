@@ -1,173 +1,236 @@
-# 🚌 Public Bus Route Finder — Kathmandu Valley (Web Edition & Desktop App)
+# 🚌 Public Bus Route Finder — Kathmandu Valley
 
-A modern **Web Application & Java backend** that helps passengers find the
-cheapest or shortest route between any two bus stops in the Kathmandu Valley
-(Kathmandu, Lalitpur, Bhaktapur), featuring an interactive **Leaflet.js transit map**,
-**Dijkstra's algorithm**, multi-bus transfer detection, fare calculations, and a full
-**Admin Management Console**.
+> **Academic Java project** — Helps passengers find the cheapest or shortest public bus journey
+> across Kathmandu, Lalitpur, and Bhaktapur using **Dijkstra's algorithm** on a live transit graph.
 
-Now available as a responsive **Web Application** (served via the zero-dependency
-built-in Java `WebServer` or running standalone in any modern browser) alongside
-the original JavaFX desktop application.
+[![Java](https://img.shields.io/badge/Java-17%2B-orange?logo=openjdk)](https://adoptium.net)
+[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
+[![Status](https://img.shields.io/badge/Status-Active-brightgreen)]()
 
 ---
 
-## 🚀 Quick Start (Web Application)
+## 📋 Table of Contents
 
-### Option 1: Run with Java Backend Server
-Double click `run-web.bat` or execute in your terminal:
-```bash
-# Compile and run the Java WebServer
-javac -cp "src;lib/*" -d out/production/Public-Bus-Route-Finder-Kathmandu-Valley src/model/enums/*.java src/model/*.java src/service/*.java src/util/*.java src/server/*.java
+- [Overview](#-overview)
+- [Architecture](#️-architecture)
+- [Quick Start — Web App](#-quick-start--web-app-primary)
+- [Quick Start — JavaFX Desktop](#-quick-start--javafx-desktop-legacy)
+- [Project Structure](#-project-structure)
+- [Tech Stack](#️-tech-stack)
+- [Seed Data — Transit Network](#-seed-data--kathmandu-valley-transit-network)
+- [API Reference](#-rest-api-reference)
+- [Demo Credentials](#-demo-credentials)
+- [Changes & Changelog](#-changes--what-was-done-and-why)
+- [OOP & Design Principles](#-oop--design-principles)
+- [Known Limitations](#-known-limitations)
+- [Future Improvements](#-future-improvements)
+
+---
+
+## 🌏 Overview
+
+Citizens in the Kathmandu Valley often don't know which bus (or combination of buses)
+gets them from A to B, and what it should cost. This project digitizes that lookup:
+
+- Models the entire valley transit network as a **weighted graph** — stops are nodes, route segments are edges
+- Runs **Dijkstra's algorithm** to find the optimal path (by fare or distance), including automatic multi-bus transfers
+- Displays a step-by-step itinerary: which bus to board, where to transfer, fare per leg, and totals
+- Provides a full **Admin Console** to manage stops, routes, and segments at runtime
+
+### What users can do
+
+| Role | Capabilities |
+|------|-------------|
+| 🧑 **Guest / Passenger** | Search routes, view all bus lines, view transit map |
+| 🔑 **Admin** | Everything above + add/delete stops, create routes, connect segments, reset data |
+
+---
+
+## 🏗️ Architecture
+
+The repository contains **two parallel implementations** that share the `model/` and `service/` packages:
+
+```
+┌──────────────────────────────────────────────────────────┐
+│                     SHARED CORE                          │
+│                                                          │
+│  model/BusStop  ·  model/BusRoute  ·  model/RouteSegment │
+│  service/RouteFinderService  (Dijkstra's algorithm)      │
+│  service/FareCalculatorService                           │
+│  util/GraphBuilder  (builds adjacency list)              │
+└─────────────────────┬────────────────────┬───────────────┘
+                      │                    │
+          ┌───────────▼──────┐   ┌─────────▼─────────────┐
+          │  WEB APP (Primary)│   │  JAVAFX APP (Legacy)  │
+          │                  │   │                       │
+          │  server/         │   │  gui/LoginView        │
+          │    WebServer     │   │  gui/AdminDashboard   │
+          │    InMemory      │   │  gui/PassengerDash    │
+          │    DataStore     │   │                       │
+          │                  │   │  dao/ (MySQL CRUD)    │
+          │  web/            │   │  util/DatabaseConn    │
+          │    index.html    │   │  sql/schema.sql       │
+          │    app.js        │   │                       │
+          │    style.css     │   │  Data: MySQL DB       │
+          │    seed-data.json│   │  Auth: BCrypt         │
+          │                  │   │                       │
+          │  Data: In-memory │   │  Entry: MainLauncher  │
+          │  Auth: BCrypt +  │   └───────────────────────┘
+          │    UUID tokens   │
+          │                  │
+          │  Entry: Main.java│
+          └──────────────────┘
+```
+
+> **`Main.java` launches the Web App.** The JavaFX path (`MainLauncher.java`) is a documented
+> alternate mode for running the desktop app with a live MySQL database.
+
+---
+
+## 🚀 Quick Start — Web App (Primary)
+
+**Requirements:** Java 17+ only. No database, no extra setup.
+
+### Option 1 — Double-click (Windows)
+
+Double-click **`run-web.bat`** in File Explorer.
+
+It will automatically compile all Java backend classes and open `http://localhost:8080` in your browser.
+
+### Option 2 — Terminal
+
+```bat
+cd "C:\path\to\Public-Bus-Route-Finder-Kathmandu-Valley"
+run-web.bat
+```
+
+### Option 3 — Manual compile & run
+
+```bat
+javac -cp "src;lib/*" -d out/production/Public-Bus-Route-Finder-Kathmandu-Valley ^
+  src/model/enums/*.java src/model/*.java src/service/*.java src/util/*.java src/server/*.java
+
 java -cp "out/production/Public-Bus-Route-Finder-Kathmandu-Valley;lib/*" server.WebServer
 ```
-Then open: **[http://localhost:8080](http://localhost:8080)**
 
-### Option 2: Run Standalone Web App (No setup required)
-Simply open `web/index.html` in Google Chrome, Microsoft Edge, or Firefox! The client-side transit engine and interactive Kathmandu Valley map will run immediately with pre-bundled transit data.
+Then visit: **[http://localhost:8080](http://localhost:8080)**
 
----
-
-## 📌 Overview
-
-Citizens in the Kathmandu Valley are often unsure which bus (or combination
-of buses) gets them from A to B, and what it should cost. This app digitizes
-that lookup:
-
-- Store the valley's bus **stops** and **routes** in a MySQL database.
-- Model the transit network as a **graph** (stops = nodes, route segments =
-  edges).
-- Use **Dijkstra's algorithm** to compute the cheapest or shortest journey,
-  automatically handling transfers between routes.
-- Show a step-by-step itinerary: which bus to board, where to get off,
-  where to transfer, and the total fare/distance.
-
-### 👤 Passenger side
-- Register / log in, or continue as a guest
-- Pick a "From" stop and a "To" stop
-- Choose to optimize by **cheapest fare** or **shortest distance**
-- See a turn-by-turn itinerary with per-leg fare and distance, and the total
-
-### 🏢 Admin side
-- Add / delete bus stops
-- Create new bus routes and operators
-- Add ordered route segments (stop-to-stop legs) that make up each route
+> Press `Ctrl+C` in the terminal to stop the server.
 
 ---
 
-## ✨ Key Features
+## 🖥️ Quick Start — JavaFX Desktop (Legacy)
 
-- 🔎 **Graph-based route finding** — `service.RouteFinderService` builds a
-  weighted graph from all route segments and runs Dijkstra's algorithm to
-  find the optimal path, including multi-bus transfers.
-- 💰 **Two optimization modes** — cheapest fare (NPR) or shortest distance (km).
-- 🔁 **Automatic bidirectional segments** — a road served by a route is
-  treated as usable in both directions without duplicate data entry.
-- 🧭 **Bus change detection** — the app tells the passenger how many buses
-  they need to board for a given journey.
-- 🛠️ **Admin console** — manage stops, routes, and segments without touching
-  the database directly.
-- 🧾 **Layered architecture** — `model` / `dao` / `service` / `gui` / `util`
-  separation, same pattern used in the reference municipality project.
+**Requirements:** Java 17+, JavaFX SDK, MySQL 8+
 
----
+### 1. Clone the repository
 
-## 🧠 OOP & Software Design
-
-- **Encapsulation** — `BusStop`, `BusRoute`, `RouteSegment`, `User` expose
-  private fields via getters/setters only.
-- **Abstraction** — `BusStopDAO`, `BusRouteDAO`, `UserDAO` interfaces hide
-  JDBC/SQL details from the GUI and service layers.
-- **Polymorphism** — `BusStopDAOImpl`, `BusRouteDAOImpl`, `UserDAOImpl`
-  provide concrete implementations of the DAO interfaces.
-- **Separation of concerns**:
-
-```
-gui      → JavaFX screens (LoginView, PassengerDashboardView, AdminDashboardView)
-dao      → JDBC database access
-model    → Data entities (BusStop, BusRoute, RouteSegment, User)
-service  → Business logic (RouteFinderService, FareCalculatorService)
-util     → DatabaseConnection, GraphBuilder
+```bash
+git clone https://github.com/anush-821/Public-Bus-Route-Finder-Kathmandu-Valley.git
+cd Public-Bus-Route-Finder-Kathmandu-Valley
 ```
 
----
+### 2. Set up the MySQL database
 
-## 🏗️ Project Architecture
+Open **MySQL Workbench** or the `mysql` CLI and run:
 
+```sql
+source sql/schema.sql;
 ```
-┌─────────────────────────┐
-│        JavaFX UI        │
-│ Passenger / Admin views │
-└────────────┬─────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│         Services         │
-│ RouteFinderService        │
-│ (Dijkstra's algorithm)    │
-│ FareCalculatorService     │
-└────────────┬─────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│           DAO             │
-│ BusStopDAO / BusRouteDAO  │
-│ UserDAO                   │
-└────────────┬─────────────┘
-             │
-             ▼
-┌─────────────────────────┐
-│          MySQL            │
-│      kathmandu_bus_db     │
-└─────────────────────────┘
+
+This creates the `kathmandu_bus_db` database with tables for stops, routes, segments, and users.
+
+### 3. Configure the database connection
+
+Database credentials are read from **environment variables** (not hardcoded).
+Copy the example file and fill in your values:
+
+```bat
+copy .env.example .env
 ```
+
+Edit `.env`:
+
+```env
+DB_HOST=localhost
+DB_PORT=3306
+DB_NAME=kathmandu_bus_db
+DB_USER=root
+DB_PASS=your_password
+```
+
+> ⚠️ `.env` is listed in `.gitignore` — never commit real credentials.
+
+### 4. Add required JARs to `lib/`
+
+| JAR | Download from |
+|-----|--------------|
+| `mysql-connector-j-x.x.x.jar` | [MySQL Connector/J](https://dev.mysql.com/downloads/connector/j/) |
+| JavaFX SDK JARs | Already bundled in `lib/` |
+
+### 5. Run from IntelliJ IDEA
+
+Open the project → right-click `src/MainLauncher.java` → **Run 'MainLauncher.main()'**
 
 ---
 
 ## 📁 Project Structure
 
 ```
-BusRouteFinder-KathmanduValley/
+Public-Bus-Route-Finder-Kathmandu-Valley/
 │
 ├── src/
-│   ├── dao/
-│   │   ├── BusStopDAO.java
-│   │   ├── BusStopDAOImpl.java
-│   │   ├── BusRouteDAO.java
-│   │   ├── BusRouteDAOImpl.java
-│   │   ├── UserDAO.java
-│   │   └── UserDAOImpl.java
+│   ├── Main.java                    ← Entry point → starts WebServer (web app)
+│   ├── MainLauncher.java            ← JavaFX entry point (desktop app)
 │   │
-│   ├── gui/
-│   │   ├── LoginView.java
-│   │   ├── PassengerDashboardView.java
-│   │   ├── AdminDashboardView.java
-│   │   └── style.css
-│   │
-│   ├── model/
-│   │   ├── BusStop.java
-│   │   ├── BusRoute.java
-│   │   ├── RouteSegment.java
-│   │   ├── User.java
+│   ├── model/                       ← Shared domain entities
+│   │   ├── BusStop.java             ← stopId, name, area, lat, lon
+│   │   ├── BusRoute.java            ← routeId, name, operator, farePerKm
+│   │   ├── RouteSegment.java        ← directed edge: fromStop→toStop, distance, fare
+│   │   ├── User.java                ← userId, name, email, bcrypt password, role
 │   │   └── enums/
-│   │       └── UserRole.java
+│   │       └── UserRole.java        ← ADMIN | PASSENGER
 │   │
-│   ├── service/
-│   │   ├── RouteFinderService.java
-│   │   └── FareCalculatorService.java
+│   ├── service/                     ← Shared business logic
+│   │   ├── RouteFinderService.java  ← Dijkstra's algorithm (FARE or DISTANCE mode)
+│   │   └── FareCalculatorService.java ← Formats NPR & km for display
 │   │
-│   ├── util/
-│   │   ├── DatabaseConnection.java
-│   │   └── GraphBuilder.java
+│   ├── util/                        ← Shared utilities
+│   │   ├── GraphBuilder.java        ← Builds adjacency list, adds reverse edges
+│   │   └── DatabaseConnection.java  ← MySQL connection (reads env vars)
 │   │
-│   ├── Main.java
-│   └── MainLauncher.java
+│   ├── server/                      ← Web app backend
+│   │   ├── WebServer.java           ← Built-in Java HTTP server, 12 REST endpoints
+│   │   └── InMemoryDataStore.java   ← Thread-safe singleton, loads seed-data.json
+│   │
+│   ├── dao/                         ← JavaFX/MySQL data access layer
+│   │   ├── BusStopDAO.java          ← Interface
+│   │   ├── BusStopDAOImpl.java      ← MySQL implementation
+│   │   ├── BusRouteDAO.java         ← Interface
+│   │   ├── BusRouteDAOImpl.java     ← MySQL implementation (transactional deletes)
+│   │   ├── UserDAO.java             ← Interface
+│   │   └── UserDAOImpl.java         ← MySQL implementation with BCrypt check
+│   │
+│   └── gui/                         ← JavaFX desktop UI
+│       ├── LoginView.java           ← Login screen, routes by role
+│       ├── PassengerDashboardView.java ← Stop pickers, route result, itinerary list
+│       ├── AdminDashboardView.java  ← 3-tab console: Stops / Routes / Segments
+│       └── style.css               ← JavaFX stylesheet
+│
+├── web/                             ← Frontend (served by WebServer)
+│   ├── index.html                  ← Single-page app shell (Leaflet map + 3 panels)
+│   ├── app.js                      ← All frontend logic (1,100+ lines, vanilla JS)
+│   ├── style.css                   ← Design system: dark/light themes, animations
+│   └── seed-data.json              ← 18 stops, 6 routes, 18 segments (Kathmandu Valley)
 │
 ├── sql/
-│   └── schema.sql
+│   └── schema.sql                  ← MySQL schema + sample data for desktop mode
 │
-├── lib/                 (place mysql-connector-j and javafx jars here)
+├── lib/                            ← Bundled JARs (JavaFX, Gson 2.10.1, jBCrypt 0.4)
+├── run-web.bat                     ← One-click launcher for the web app
+├── .env.example                    ← Template for database credentials
 ├── .gitignore
+├── LICENSE
 └── README.md
 ```
 
@@ -175,209 +238,323 @@ BusRouteFinder-KathmanduValley/
 
 ## 🛠️ Tech Stack
 
-| Technology            | Purpose                          |
-| ---------------------- | --------------------------------- |
-| ☕ Java 17+             | Core programming language         |
-| 🎨 JavaFX 17+ (or 21)  | Desktop GUI                       |
-| 🗄️ MySQL 8+            | Database                          |
-| 🔌 MySQL Connector/J   | Java–MySQL connectivity (JDBC)    |
-| 💻 IntelliJ IDEA / Eclipse / VS Code | Development environment |
+| Layer | Technology | Purpose |
+|-------|-----------|---------|
+| Language | **Java 17+** | Core application logic |
+| Web Server | **`com.sun.net.httpserver`** | Zero-dependency HTTP server (built into JDK) |
+| JSON | **Gson 2.10.1** | REST API serialization / seed-data parsing |
+| Password Hashing | **jBCrypt 0.4** | Secure password storage (never plain-text) |
+| Map Library | **Leaflet.js 1.9.4** | Interactive transit map in the browser |
+| Map Tiles | **OpenStreetMap** | Free map tiles — no API key required |
+| Frontend | **Vanilla HTML/CSS/JS** | SPA frontend, no framework needed |
+| Desktop GUI | **JavaFX 17+** | Desktop application UI (legacy mode) |
+| Database | **MySQL 8+** | Persistence for JavaFX/desktop mode only |
+| JDBC | **MySQL Connector/J** | Java–MySQL connectivity (desktop mode) |
+| IDE | **IntelliJ IDEA** | Recommended development environment |
 
 ---
 
-## 💻 What You Need Installed on Your Desktop
+## 🚏 Seed Data — Kathmandu Valley Transit Network
 
-To open, edit, and run this project you'll need the following installed
-locally:
+The web app ships with **18 real bus stops**, **6 routes**, and **18 directed segments**
+pre-loaded from `web/seed-data.json`:
 
-1. **Java Development Kit (JDK) 17 or newer**
-   - Download: https://adoptium.net (Eclipse Temurin) or Oracle JDK
-   - Verify with `java -version` and `javac -version` in a terminal.
+### Bus Stops
 
-2. **JavaFX SDK** (only needed separately if your JDK doesn't bundle it —
-   most modern JDKs from Adoptium/Oracle do not include JavaFX by default)
-   - Download: https://gluonhq.com/products/javafx/
-   - Note the path to the `lib` folder inside the SDK; you'll pass it as a
-     VM option (`--module-path` / `--add-modules`) when running.
+| ID | Stop | Area |
+|----|------|------|
+| 1 | Ratna Park | Kathmandu (central hub) |
+| 2 | Sundhara | Kathmandu |
+| 3 | New Baneshwor | Baneshwor |
+| 4 | Koteshwor | Koteshwor (eastern hub) |
+| 5 | Tribhuvan Airport | Sinamangal |
+| 6 | Kalanki | Kalanki (western hub) |
+| 7 | Balkhu | Kirtipur Road |
+| 8 | Kalimati | Kalimati |
+| 9 | Balaju | Balaju |
+| 10 | Gongabu Bus Park | Gongabu (northern hub) |
+| 11 | Swayambhu | Swayambhu |
+| 12 | Lagankhel | Lalitpur (southern hub) |
+| 13 | Patan Dhoka | Lalitpur |
+| 14 | Jawalakhel | Lalitpur |
+| 15 | Bhaktapur Durbar Square | Bhaktapur |
+| 16 | Suryabinayak | Bhaktapur |
+| 17 | Chabahil | Chabahil |
+| 18 | Boudha | Boudha |
 
-3. **MySQL Community Server 8.x**
-   - Download: https://dev.mysql.com/downloads/mysql/
-   - Also install **MySQL Workbench** (bundled with the installer on
-     Windows/macOS) for a GUI way to run `sql/schema.sql`.
+### Bus Routes
 
-4. **MySQL Connector/J** (JDBC driver JAR)
-   - Download: https://dev.mysql.com/downloads/connector/j/
-   - Place the `.jar` file in the project's `lib/` folder, or add it as a
-     dependency if you use Maven/Gradle.
+| Route | Operator | Fare/km |
+|-------|---------|---------|
+| Route 1: Ratnapark → Airport → Koteshwor | Sajha Yatayat | NPR 4.5 |
+| Route 2: Ratnapark → Kalanki → Balkhu | Nepal Yatayat | NPR 4.0 |
+| Route 3: Gongabu → Balaju → Swayambhu → Kalimati | City Bus Service | NPR 4.5 |
+| Route 4: Lagankhel → Patan Dhoka → Jawalakhel | Sajha Yatayat | NPR 4.0 |
+| Route 5: Koteshwor → Chabahil → Boudha | Boudha Sewa Yatayat | NPR 5.0 |
+| Route 6: Ratnapark → Baneshwor → Koteshwor → Bhaktapur | Bhaktapur Yatayat | NPR 5.5 |
 
-5. **An IDE with JavaFX + Maven/Gradle support** (pick one):
-   - **IntelliJ IDEA** (Community or Ultimate) — recommended
-   - **Eclipse IDE for Java Developers** + e(fx)clipse plugin
-   - **VS Code** + "Extension Pack for Java" + "JavaFX Support" extensions
-
-6. **Git** (to clone/manage the repository)
-   - Download: https://git-scm.com/downloads
-
-7. *(Optional but recommended)* **Maven** or **Gradle**, if you want to
-   manage the JavaFX and MySQL Connector/J dependencies automatically
-   instead of manually downloading JARs into `lib/`.
-
-### Quick tool checklist
-
-| Tool | Required? | Notes |
-| --- | --- | --- |
-| JDK 17+ | ✅ Required | Compiles and runs the app |
-| JavaFX SDK | ✅ Required | Powers the GUI (unless your JDK bundles it) |
-| MySQL Server 8+ | ✅ Required | Stores stops/routes/users |
-| MySQL Workbench | Recommended | Easiest way to run `schema.sql` |
-| MySQL Connector/J | ✅ Required | JDBC driver, put in `lib/` |
-| IntelliJ IDEA / Eclipse / VS Code | ✅ Required (pick one) | IDE to build & run |
-| Git | Recommended | Version control |
-| Maven or Gradle | Optional | Simplifies dependency management |
+> All segments are treated as **bidirectional** — `GraphBuilder` automatically creates
+> a reverse edge for every segment, so every route is usable in both directions.
 
 ---
 
-## 🚀 Getting Started
+## 🔌 REST API Reference
 
-### 1️⃣ Clone or download the project
+All endpoints are served by `WebServer.java` at `http://localhost:8080`.
 
+| Method | Endpoint | Auth Required | Description |
+|--------|----------|:-------------:|-------------|
+| `POST` | `/api/login` | — | Authenticate, returns `{ token, role, name }` |
+| `POST` | `/api/logout` | Bearer token | Invalidates session token |
+| `GET` | `/api/stops` | — | List all bus stops |
+| `POST` | `/api/stops` | Admin token | Create a new stop |
+| `DELETE` | `/api/stops/{id}` | Admin token | Delete stop (cascades its segments) |
+| `GET` | `/api/routes` | — | List all bus routes |
+| `POST` | `/api/routes` | Admin token | Create a new route |
+| `DELETE` | `/api/routes/{id}` | Admin token | Delete route (cascades its segments) |
+| `GET` | `/api/segments` | — | List all route segments |
+| `POST` | `/api/segments` | Admin token | Add a segment (graph edge) |
+| `POST` | `/api/find-route` | — | Run Dijkstra, returns full journey result |
+| `POST` | `/api/reset` | Admin token | Reset all data to seed defaults |
+
+Admin endpoints require the HTTP header:
 ```
-git clone https://github.com/anush-821/Public-Bus-Route-Finder-Kathmandu-Valley.git
-cd BusRouteFinder-KathmanduValley
+Authorization: Bearer <token-from-login>
 ```
-
-### 2️⃣ Set up the database
-
-Open **MySQL Workbench** (or the `mysql` CLI) and run:
-
-```
-sql/schema.sql
-```
-
-This creates the `kathmandu_bus_db` database with sample Kathmandu Valley
-stops, routes, and demo accounts.
-
-### 3️⃣ Configure the database connection
-
-Open:
-
-```
-src/util/DatabaseConnection.java
-```
-
-Update your MySQL credentials:
-
-```java
-private static final String URL =
-        "jdbc:mysql://localhost:3306/kathmandu_bus_db?useSSL=false&serverTimezone=UTC";
-
-private static final String USER = "root";
-
-private static final String PASSWORD = "your_password";
-```
-
-⚠️ Do not commit real database passwords to GitHub. For a real deployment,
-use environment variables or a config file excluded via `.gitignore`.
-
-### 4️⃣ Add the required libraries
-
-Place these JAR files on your classpath (e.g. inside `lib/`, or configure
-them as dependencies in your IDE / build tool):
-
-- `mysql-connector-j-<version>.jar`
-- JavaFX SDK `lib/` folder (if not bundled with your JDK)
-
-### 5️⃣ Run the application
-
-Open the project in **IntelliJ IDEA** (or your IDE of choice), open:
-
-```
-src/MainLauncher.java
-```
-
-Then **Right Click → Run 'MainLauncher.main()'**.
-
-If running from the command line instead, something like:
-
-```
-javac -d out --module-path /path/to/javafx-sdk/lib --add-modules javafx.controls src/**/*.java
-java --module-path /path/to/javafx-sdk/lib --add-modules javafx.controls -cp "out;lib/mysql-connector-j-8.x.x.jar" MainLauncher
-```
-(use `:` instead of `;` between classpath entries on macOS/Linux)
 
 ---
 
 ## 🔑 Demo Credentials
 
-| Role       | Email                       | Password        |
-| ---------- | ---------------------------- | ---------------- |
-| 🏢 Admin    | `admin@ktmbus.gov.np`        | `admin123`       |
-| 👤 Passenger | `passenger@example.com`     | `passenger123`   |
-| 👤 Passenger | Register through UI, or "Continue as Guest" | Chosen at registration |
+| Role | Email | Password |
+|------|-------|---------|
+| 🏢 Admin | `admin@ktmbus.gov.np` | `admin123` |
+| 🧑 Passenger | `passenger@example.com` | `passenger123` |
 
-> ⚠️ These credentials are for demonstration/development purposes only.
+> Passwords are stored as **BCrypt hashes** — never in plain text.
+> These credentials are for demonstration only.
 
 ---
 
-## 🔐 Security Considerations
+## 📝 Changes & What Was Done and Why
 
-This is an academic/portfolio project. For production use, add:
+This section documents every significant change made to the codebase from the original
+version, along with the rationale for each decision.
 
-- Password hashing (e.g. BCrypt) instead of plain-text passwords
-- Environment-based database credentials
-- Input validation and sanitization
-- Prepared statements everywhere (already used throughout the DAO layer)
-- Session management and role-based authorization
-- HTTPS/API security if converted to a web architecture
+---
+
+### 1. 🌐 Web App Established as Primary Entry Point
+**Files:** `Main.java`, `README.md`
+
+**What changed:** `Main.java` was confirmed to launch `server.WebServer` directly.
+`MainLauncher.java` (JavaFX) is retained as a documented alternate/legacy mode.
+
+**Why:** The web app requires zero external dependencies (no MySQL, no JavaFX SDK config),
+making it immediately runnable on any machine with Java 17+. It is the more accessible
+and demonstrable entry point for an academic project.
+
+---
+
+### 2. 🔐 Server-Side Session Token Authentication
+**File:** `src/server/WebServer.java`
+
+**What changed:** Implemented a full session system using random **UUID tokens**.
+After a successful login, the server generates a UUID, stores it in a `ConcurrentHashMap`
+mapped to the user's role, and returns it to the client. All mutating admin endpoints
+(`POST`/`DELETE` for stops, routes, segments) require the `Authorization: Bearer <token>` header
+and validate that the token belongs to an `ADMIN` role. Unauthenticated requests receive `401`.
+
+**Why:** The original code had no server-side authorization — any browser could call admin
+endpoints directly. This change enforces that only logged-in admins can modify data,
+which is a fundamental security requirement.
+
+---
+
+### 3. 🔒 BCrypt Password Hashing
+**Files:** `src/server/InMemoryDataStore.java`, `src/dao/UserDAOImpl.java`
+
+**What changed:** All passwords are now stored as **BCrypt hashes** using the
+`jBCrypt 0.4` library (`org.mindrot.jbcrypt.BCrypt`). `InMemoryDataStore` hashes
+the demo passwords at startup. `UserDAOImpl` uses `BCrypt.checkpw()` for MySQL-mode
+login verification.
+
+**Why:** Plain-text or MD5 passwords are a critical vulnerability. BCrypt is the
+industry standard for password storage — it is slow by design (making brute-force
+attacks impractical) and includes a random salt, preventing rainbow table attacks.
+
+---
+
+### 4. 🌱 Canonical Seed Data (`seed-data.json`)
+**File:** `web/seed-data.json`
+
+**What changed:** Created a single JSON file containing 18 real Kathmandu Valley
+bus stops (with accurate GPS coordinates), 6 bus routes (with real operators and
+fare rates), and 18 route segments forming a connected transit graph. This file is
+loaded by `InMemoryDataStore` at startup and is also used by the frontend.
+
+**Why:** Previously, data was scattered in hard-coded Java arrays and duplicated
+between the backend and frontend. A single source-of-truth file eliminates duplication,
+makes it easy to add new stops/routes, and keeps GPS coordinates accurate.
+
+---
+
+### 5. ⚙️ Environment Variable Database Credentials
+**Files:** `src/util/DatabaseConnection.java`, `.env.example`
+
+**What changed:** `DatabaseConnection.java` was refactored to read all MySQL credentials
+(`DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASS`) from environment variables via
+`System.getenv()` instead of having them hardcoded as string literals. A `.env.example`
+template file was added.
+
+**Why:** Hardcoded credentials in source code are a serious security risk — they end up
+committed to version control and visible to anyone with repository access. Using environment
+variables is the standard approach for keeping secrets out of code.
+
+---
+
+### 6. 🗺️ Map Tile Source Fixed (No API Key Required)
+**File:** `web/app.js`
+
+**What changed:** The `updateMapTiles()` function was updated to use **OpenStreetMap**
+tile URLs (`tile.openstreetmap.org`) instead of CARTO basemaps. Dark mode is achieved
+using a CSS `invert(1) hue-rotate(180deg)` filter on the map container element.
+
+**Why:** CARTO basemaps now require a registered account and API key, causing the map
+to show blank tiles for users without a key. OpenStreetMap is completely free, has no
+rate limits for normal use, and requires no account or configuration. This makes the
+project immediately runnable without any setup.
+
+---
+
+### 7. 🚦 Port Standardized to 8080
+**Files:** `src/server/WebServer.java`, `run-web.bat`
+
+**What changed:** The server port was standardized to `8080` across all files. The
+`run-web.bat` script and the `WebServer.java` startup message now consistently reference
+the same port.
+
+**Why:** An earlier version of the code had a mismatch between the port referenced in
+the batch script and the port the server actually listened on, causing "connection
+refused" errors after clicking the auto-opened browser tab.
+
+---
+
+### 8. 🧹 Removed Unused Import (`JsonArray` in `WebServer.java`)
+**File:** `src/server/WebServer.java` (line 5)
+
+**What changed:** Removed the unused `import com.google.gson.JsonArray;` statement.
+
+**Why:** `JsonArray` was never referenced in `WebServer.java` — all JSON serialization
+uses `Gson.toJson()` directly. Unused imports are noise that reduces code clarity and
+triggers IDE warnings.
+
+---
+
+### 9. ✅ Input Validation Added to JavaFX Admin Dashboard
+**File:** `src/gui/AdminDashboardView.java`
+
+**What changed:** Replaced the old `parseOrZero()` utility calls with proper
+`parseDoubleOrNull()` and `parsePositiveDouble()` / `parsePositiveInt()` helper methods
+that return `null` on invalid input. The form action handlers now check for `null` returns
+and display a descriptive error message in the `statusLabel` without submitting the form.
+Latitude is validated to the range `[-90, 90]` and longitude to `[-180, 180]`.
+
+**Why:** The original code silently defaulted invalid numbers to `0`, which could create
+stops at the Gulf of Guinea (0°, 0°) or routes with zero fare. Proper validation rejects
+bad input immediately with a human-readable message.
+
+---
+
+### 10. 🔄 `deleteRoute` Made Transactional in `BusRouteDAOImpl`
+**File:** `src/dao/BusRouteDAOImpl.java`
+
+**What changed:** The `deleteRoute()` method now wraps the segment deletion and route
+deletion inside a single JDBC **transaction** (`conn.setAutoCommit(false)` + `commit()`
++ `rollback()` on failure).
+
+**Why:** Without a transaction, if the server crashed between deleting segments and
+deleting the route, the database would be left in an inconsistent state — a route with
+no segments, or orphaned segments with no parent route. The transaction guarantees both
+operations succeed together or neither does.
+
+---
+
+### 11. 📦 Third-Party Libraries Added to `lib/`
+**Files:** `lib/gson-2.10.1.jar`, `lib/jbcrypt-0.4.jar`
+
+**What changed:** Two JAR files were downloaded and added to the `lib/` directory:
+- **Gson 2.10.1** — for JSON serialization in `WebServer.java` and parsing `seed-data.json`
+- **jBCrypt 0.4** — for BCrypt password hashing in `InMemoryDataStore` and `UserDAOImpl`
+
+**Why:** These libraries were referenced in the source code but not present in the
+repository, causing compilation failures. Bundling them in `lib/` (which is already
+on the IDE classpath via the `.iml` configuration) makes the project compile and run
+without any additional setup.
+
+---
+
+## 🧠 OOP & Design Principles
+
+| Principle | Where Applied |
+|-----------|--------------|
+| **Encapsulation** | All model fields are `private` with getters/setters only (`BusStop`, `BusRoute`, `RouteSegment`, `User`) |
+| **Abstraction** | `BusStopDAO`, `BusRouteDAO`, `UserDAO` interfaces hide all SQL/JDBC from the GUI and service layers |
+| **Polymorphism** | `BusStopDAOImpl`, `BusRouteDAOImpl`, `UserDAOImpl` are concrete implementations swappable behind their interfaces |
+| **Separation of Concerns** | `model` ↔ `dao` ↔ `service` ↔ `gui/server` are strictly layered; services never call DAOs directly in the web mode |
+| **Single Responsibility** | `GraphBuilder` only builds the graph; `RouteFinderService` only runs Dijkstra; `FareCalculatorService` only formats output |
+| **Thread Safety** | `InMemoryDataStore` uses `ConcurrentHashMap`, `Collections.synchronizedList`, `AtomicInteger`, and `synchronized` methods |
+
+---
+
+## ⚠️ Known Limitations
+
+| Limitation | Details |
+|-----------|---------|
+| **No persistence** | Web app data resets on every server restart (in-memory only) |
+| **Disconnected zones** | Some stops (e.g. Lagankhel/Patan) are isolated from Bhaktapur without a Koteshwor transfer |
+| **No timetables** | Bus schedules and frequencies are not modelled |
+| **No unit tests** | `RouteFinderService` and `GraphBuilder` have no automated test coverage |
+| **Plain HTTP** | Web server runs on HTTP only — acceptable for local/academic use |
 
 ---
 
 ## 🔮 Future Improvements
 
-- 🗺️ Live map view of stops and the chosen route (e.g. embedded map widget)
-- 📱 Companion mobile app
-- 🕒 Real-time bus arrival estimates
-- 🚦 Traffic-aware travel time estimation (not just distance/fare)
-- 💳 Digital ticketing / fare card integration
-- 🌐 Web-based version
-- 🧑‍💼 Multiple admin roles (per-operator admins)
-- 📊 Ridership analytics dashboard
+- 💾 **Persistent storage** — SQLite or H2 embedded DB so web app data survives restarts
+- 🧪 **Unit tests** — JUnit 5 tests for `RouteFinderService`, `GraphBuilder`, and `InMemoryDataStore`
+- 🕒 **Timetables** — Model bus schedules and estimate arrival times
+- 📱 **Mobile companion** — Android or iOS app using the same REST API
+- 🚦 **Traffic-aware routing** — Factor in peak-hour delays
+- 💳 **Digital ticketing** — QR-code fare card integration
+- 📊 **Ridership analytics** — Admin dashboard with journey counts and popular routes
+- 🔒 **HTTPS** — TLS termination via a reverse proxy (Nginx) for production deployment
+- 👥 **Multi-operator admin** — Per-operator admin roles, not just one global admin
 
 ---
 
 ## 🎯 Project Objectives
 
-1. Digitize public bus route discovery for the Kathmandu Valley.
-2. Apply graph theory (Dijkstra's algorithm) to a real-world transit problem.
-3. Demonstrate layered, OOP-based desktop application design in Java.
-4. Practice JDBC + MySQL integration with a JavaFX front end.
-5. Provide a foundation that could be extended toward a real civic tool.
+1. Digitize public bus route discovery for the Kathmandu Valley
+2. Apply **graph theory** (Dijkstra's algorithm) to a real-world transit problem
+3. Demonstrate a clean **layered OOP architecture** in Java (`model/dao/service/gui`)
+4. Practice **JDBC + MySQL** integration with a JavaFX front end
+5. Build and serve a **zero-dependency web application** from the Java standard library
+6. Apply **security best practices**: BCrypt hashing, session tokens, server-side authorization
 
 ---
 
-## 👨‍💻 Development Focus
+## 📄 License
 
-```
-Java
-│
-├── Object-Oriented Programming
-├── JavaFX GUI Development
-├── Graph Algorithms (Dijkstra's shortest path)
-├── JDBC
-├── MySQL Database Management
-├── DAO Architecture
-├── Business Logic Separation
-└── Authentication
-```
+This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
 
-## Academic Project
+## 👨‍💻 Academic Project
 
-This project was developed as a Java Object-Oriented Programming / Software
-Development project, applying graph algorithms and layered application
-design to a real-world municipal transit scenario in the Kathmandu Valley.
+Developed as a **Java Object-Oriented Programming / Software Development** academic project,
+applying graph algorithms, layered application design, and web technologies to a real-world
+municipal transit scenario in the Kathmandu Valley, Nepal.
 
 ---
 
-**Built with Java + MySQL + HTML + Javascript + CSS**
+*Built with Java · Gson · jBCrypt · JavaFX · Leaflet.js · OpenStreetMap · Vanilla HTML/CSS/JS*
