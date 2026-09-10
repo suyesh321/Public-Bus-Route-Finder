@@ -148,14 +148,22 @@ function updateMapTiles(theme) {
   if (tileLayer) {
     state.map.removeLayer(tileLayer);
   }
-  const tileUrl = theme === "dark"
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+  // Free OpenStreetMap tiles — no API key required.
+  // Dark theme uses the same tiles with a CSS invert filter applied to the map container.
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   tileLayer = L.tileLayer(tileUrl, {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://carto.com/">CARTO</a>, &copy; OpenStreetMap'
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(state.map);
+
+  // Apply CSS filter for dark mode so the map blends with the dark UI
+  const mapEl = document.getElementById("leaflet-map");
+  if (mapEl) {
+    mapEl.style.filter = theme === "dark"
+      ? "invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)"
+      : "none";
+  }
 }
 
 // =============================================================================
