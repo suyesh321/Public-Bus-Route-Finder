@@ -543,12 +543,6 @@ without any additional setup.
 
 ---
 
-## 📄 License
-
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
----
-
 ## 👨‍💻 Academic Project
 
 Developed as a **Java Object-Oriented Programming / Software Development** academic project,
@@ -557,4 +551,4 @@ municipal transit scenario in the Kathmandu Valley, Nepal.
 
 ---
 
-*Built with Java · Gson · jBCrypt · JavaFX · Leaflet.js · OpenStreetMap · Vanilla HTML/CSS/JS*
+*Built with Java · Gson · jBCrypt · JavaFX · Leaflet.js · OpenStreetMap · HTML/CSS/JS*
