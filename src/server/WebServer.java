@@ -1,5 +1,9 @@
 package server;
 
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
 import com.sun.net.httpserver.HttpExchange;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpServer;
@@ -7,37 +11,55 @@ import model.BusRoute;
 import model.BusStop;
 import model.RouteSegment;
 import model.User;
+import model.enums.UserRole;
 import service.RouteFinderService;
 import util.GraphBuilder;
 
 import java.io.*;
 import java.net.InetSocketAddress;
-import java.net.URLDecoder;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 
 /**
- * Lightweight, zero-dependency HTTP server for the Public Bus Route Finder
+ * Lightweight HTTP server for the Public Bus Route Finder
  * Kathmandu Valley web application.
  *
- * Serves the responsive frontend web application from the 'web/' directory
- * and exposes REST API endpoints for transit data, Dijkstra pathfinding,
- * and admin management.
+ * Uses Gson for JSON serialization/deserialization, enforces server-side
+ * token-based authorization for admin endpoints, and validates numeric inputs.
  */
 public class WebServer {
 
-    private static final int PORT = 8082;
+    private static final int PORT = 8080;
     private static final Path WEB_DIR = Paths.get("web").toAbsolutePath();
     private static final InMemoryDataStore dataStore = InMemoryDataStore.getInstance();
+    private static final Gson gson = new Gson();
+
+    private static final Map<String, UserSession> activeSessions = new ConcurrentHashMap<>();
+
+    public static class UserSession {
+        public final String token;
+        public final int userId;
+        public final String fullName;
+        public final String email;
+        public final UserRole role;
+
+        public UserSession(String token, User user) {
+            this.token = token;
+            this.userId = user.getUserId();
+            this.fullName = user.getFullName();
+            this.email = user.getEmail();
+            this.role = user.getRole();
+        }
+    }
 
     public static void main(String[] args) throws IOException {
         HttpServer server = HttpServer.create(new InetSocketAddress(PORT), 0);
-        server.setExecutor(Executors.newVirtualThreadPerTaskExecutor() != null ?
-                Executors.newCachedThreadPool() : Executors.newCachedThreadPool());
+        server.setExecutor(Executors.newCachedThreadPool());
 
         // Static files handler
         server.createContext("/", new StaticFileHandler());
@@ -57,6 +79,32 @@ public class WebServer {
         System.out.println(" Serving frontend from: " + WEB_DIR);
         System.out.println(" Press Ctrl+C to stop.");
         System.out.println("===============================================================");
+    }
+
+    // =========================================================================
+    // Auth Verification Helper
+    // =========================================================================
+    private static UserSession getSession(HttpExchange exchange) {
+        List<String> headers = exchange.getRequestHeaders().get("Authorization");
+        if (headers != null && !headers.isEmpty()) {
+            String authHeader = headers.get(0);
+            if (authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7).trim();
+                return activeSessions.get(token);
+            }
+        }
+        return null;
+    }
+
+    private static boolean requireAdminAuth(HttpExchange exchange) throws IOException {
+        UserSession session = getSession(exchange);
+        if (session == null || session.role != UserRole.ADMIN) {
+            JsonObject err = new JsonObject();
+            err.addProperty("error", "Unauthorized: Admin privileges required");
+            sendJsonResponse(exchange, 401, gson.toJson(err));
+            return false;
+        }
+        return true;
     }
 
     // =========================================================================
@@ -119,43 +167,54 @@ public class WebServer {
 
             if ("GET".equals(method)) {
                 List<BusStop> stops = dataStore.getAllStops();
-                StringBuilder sb = new StringBuilder("[");
-                for (int i = 0; i < stops.size(); i++) {
-                    if (i > 0) sb.append(",");
-                    sb.append(stopToJson(stops.get(i)));
-                }
-                sb.append("]");
-                sendJsonResponse(exchange, 200, sb.toString());
+                sendJsonResponse(exchange, 200, gson.toJson(stops));
                 return;
             }
 
             if ("POST".equals(method)) {
+                if (!requireAdminAuth(exchange)) return;
+
                 String body = readBody(exchange);
-                Map<String, String> json = parseSimpleJson(body);
-                String name = json.getOrDefault("name", "").trim();
-                String area = json.getOrDefault("area", "").trim();
-                double lat = parseDoubleSafe(json.get("latitude"), 27.7000);
-                double lon = parseDoubleSafe(json.get("longitude"), 85.3200);
+                JsonObject json = parseJsonObject(body);
+
+                String name = json.has("name") ? json.get("name").getAsString().trim() : "";
+                String area = json.has("area") ? json.get("area").getAsString().trim() : "";
 
                 if (name.isEmpty() || area.isEmpty()) {
                     sendJsonResponse(exchange, 400, "{\"error\":\"Stop name and area are required\"}");
                     return;
                 }
 
+                Double lat = getDoubleOrNull(json, "latitude");
+                Double lon = getDoubleOrNull(json, "longitude");
+
+                if (lat == null || lat < -90.0 || lat > 90.0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Latitude must be a valid number between -90 and 90\"}");
+                    return;
+                }
+                if (lon == null || lon < -180.0 || lon > 180.0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Longitude must be a valid number between -180 and 180\"}");
+                    return;
+                }
+
                 BusStop created = dataStore.createStop(name, area, lat, lon);
-                sendJsonResponse(exchange, 201, stopToJson(created));
+                sendJsonResponse(exchange, 201, gson.toJson(created));
                 return;
             }
 
             if ("DELETE".equals(method)) {
+                if (!requireAdminAuth(exchange)) return;
+
                 String query = exchange.getRequestURI().getQuery();
                 int id = -1;
                 if (query != null && query.contains("id=")) {
                     id = parseIntSafe(query.split("id=")[1].split("&")[0], -1);
                 } else {
                     String body = readBody(exchange);
-                    Map<String, String> json = parseSimpleJson(body);
-                    id = parseIntSafe(json.get("id"), -1);
+                    JsonObject json = parseJsonObject(body);
+                    if (json.has("id")) {
+                        id = json.get("id").getAsInt();
+                    }
                 }
 
                 if (id != -1 && dataStore.deleteStop(id)) {
@@ -186,42 +245,47 @@ public class WebServer {
 
             if ("GET".equals(method)) {
                 List<BusRoute> routes = dataStore.getAllRoutes();
-                StringBuilder sb = new StringBuilder("[");
-                for (int i = 0; i < routes.size(); i++) {
-                    if (i > 0) sb.append(",");
-                    sb.append(routeToJson(routes.get(i)));
-                }
-                sb.append("]");
-                sendJsonResponse(exchange, 200, sb.toString());
+                sendJsonResponse(exchange, 200, gson.toJson(routes));
                 return;
             }
 
             if ("POST".equals(method)) {
+                if (!requireAdminAuth(exchange)) return;
+
                 String body = readBody(exchange);
-                Map<String, String> json = parseSimpleJson(body);
-                String routeName = json.getOrDefault("routeName", "").trim();
-                String operatorName = json.getOrDefault("operatorName", "").trim();
-                double farePerKm = parseDoubleSafe(json.get("farePerKm"), 5.0);
+                JsonObject json = parseJsonObject(body);
+                String routeName = json.has("routeName") ? json.get("routeName").getAsString().trim() : "";
+                String operatorName = json.has("operatorName") ? json.get("operatorName").getAsString().trim() : "";
 
                 if (routeName.isEmpty() || operatorName.isEmpty()) {
                     sendJsonResponse(exchange, 400, "{\"error\":\"Route name and operator name are required\"}");
                     return;
                 }
 
+                Double farePerKm = getDoubleOrNull(json, "farePerKm");
+                if (farePerKm == null || farePerKm <= 0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Fare per km must be a positive number\"}");
+                    return;
+                }
+
                 BusRoute created = dataStore.createRoute(routeName, operatorName, farePerKm);
-                sendJsonResponse(exchange, 201, routeToJson(created));
+                sendJsonResponse(exchange, 201, gson.toJson(created));
                 return;
             }
 
             if ("DELETE".equals(method)) {
+                if (!requireAdminAuth(exchange)) return;
+
                 String query = exchange.getRequestURI().getQuery();
                 int id = -1;
                 if (query != null && query.contains("id=")) {
                     id = parseIntSafe(query.split("id=")[1].split("&")[0], -1);
                 } else {
                     String body = readBody(exchange);
-                    Map<String, String> json = parseSimpleJson(body);
-                    id = parseIntSafe(json.get("id"), -1);
+                    JsonObject json = parseJsonObject(body);
+                    if (json.has("id")) {
+                        id = json.get("id").getAsInt();
+                    }
                 }
 
                 if (id != -1 && dataStore.deleteRoute(id)) {
@@ -252,37 +316,50 @@ public class WebServer {
 
             if ("GET".equals(method)) {
                 List<RouteSegment> segments = dataStore.getAllSegments();
-                StringBuilder sb = new StringBuilder("[");
-                for (int i = 0; i < segments.size(); i++) {
-                    if (i > 0) sb.append(",");
-                    sb.append(segmentToJson(segments.get(i)));
-                }
-                sb.append("]");
-                sendJsonResponse(exchange, 200, sb.toString());
+                sendJsonResponse(exchange, 200, gson.toJson(segments));
                 return;
             }
 
             if ("POST".equals(method)) {
+                if (!requireAdminAuth(exchange)) return;
+
                 String body = readBody(exchange);
-                Map<String, String> json = parseSimpleJson(body);
-                int routeId = parseIntSafe(json.get("routeId"), -1);
-                int fromStopId = parseIntSafe(json.get("fromStopId"), -1);
-                int toStopId = parseIntSafe(json.get("toStopId"), -1);
-                double distanceKm = parseDoubleSafe(json.get("distanceKm"), 1.0);
-                double fareNpr = parseDoubleSafe(json.get("fareNpr"), 15.0);
-                int seq = parseIntSafe(json.get("sequenceOrder"), 1);
+                JsonObject json = parseJsonObject(body);
+
+                Integer routeId = getIntOrNull(json, "routeId");
+                Integer fromStopId = getIntOrNull(json, "fromStopId");
+                Integer toStopId = getIntOrNull(json, "toStopId");
+                Double distanceKm = getDoubleOrNull(json, "distanceKm");
+                Double fareNpr = getDoubleOrNull(json, "fareNpr");
+                Integer sequenceOrder = getIntOrNull(json, "sequenceOrder");
+
+                if (routeId == null || routeId <= 0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Valid routeId is required\"}");
+                    return;
+                }
+                if (fromStopId == null || fromStopId <= 0 || toStopId == null || toStopId <= 0 || fromStopId.equals(toStopId)) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Valid distinct fromStopId and toStopId are required\"}");
+                    return;
+                }
+                if (distanceKm == null || distanceKm <= 0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Distance must be a positive number\"}");
+                    return;
+                }
+                if (fareNpr == null || fareNpr <= 0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Fare must be a positive number\"}");
+                    return;
+                }
+                if (sequenceOrder == null || sequenceOrder <= 0) {
+                    sendJsonResponse(exchange, 400, "{\"error\":\"Sequence order must be a positive integer\"}");
+                    return;
+                }
 
                 BusRoute r = dataStore.getRouteById(routeId);
                 String routeName = r != null ? r.getRouteName() : "Route " + routeId;
 
-                if (fromStopId <= 0 || toStopId <= 0 || fromStopId == toStopId) {
-                    sendJsonResponse(exchange, 400, "{\"error\":\"Valid distinct from and to stops are required\"}");
-                    return;
-                }
-
-                RouteSegment seg = new RouteSegment(routeId, routeName, fromStopId, toStopId, distanceKm, fareNpr, seq);
+                RouteSegment seg = new RouteSegment(routeId, routeName, fromStopId, toStopId, distanceKm, fareNpr, sequenceOrder);
                 dataStore.addSegment(seg);
-                sendJsonResponse(exchange, 201, segmentToJson(seg));
+                sendJsonResponse(exchange, 201, gson.toJson(seg));
                 return;
             }
 
@@ -308,20 +385,20 @@ public class WebServer {
             }
 
             String body = readBody(exchange);
-            Map<String, String> json = parseSimpleJson(body);
+            JsonObject json = parseJsonObject(body);
 
-            int startStopId = parseIntSafe(json.get("fromStopId"), -1);
-            int destStopId = parseIntSafe(json.get("toStopId"), -1);
-            String optimize = json.getOrDefault("optimizeBy", "FARE").toUpperCase();
+            Integer startStopId = getIntOrNull(json, "fromStopId");
+            Integer destStopId = getIntOrNull(json, "toStopId");
+            String optimize = json.has("optimizeBy") ? json.get("optimizeBy").getAsString().toUpperCase() : "FARE";
+
+            if (startStopId == null || startStopId <= 0 || destStopId == null || destStopId <= 0) {
+                sendJsonResponse(exchange, 400, "{\"error\":\"fromStopId and toStopId are required positive integers\"}");
+                return;
+            }
 
             RouteFinderService.OptimizeBy opt = "DISTANCE".equals(optimize)
                     ? RouteFinderService.OptimizeBy.DISTANCE
                     : RouteFinderService.OptimizeBy.FARE;
-
-            if (startStopId <= 0 || destStopId <= 0) {
-                sendJsonResponse(exchange, 400, "{\"error\":\"fromStopId and toStopId are required\"}");
-                return;
-            }
 
             List<RouteSegment> allSegments = dataStore.getAllSegments();
             Map<Integer, List<RouteSegment>> graph = GraphBuilder.buildAdjacencyList(allSegments);
@@ -336,59 +413,56 @@ public class WebServer {
 
             int busChanges = finder.countBusChanges(result.getSegments());
 
-            StringBuilder sb = new StringBuilder();
-            sb.append("{");
-            sb.append("\"found\":true,");
-            sb.append("\"totalFare\":").append(result.getTotalFare()).append(",");
-            sb.append("\"totalDistanceKm\":").append(result.getTotalDistanceKm()).append(",");
-            sb.append("\"busChanges\":").append(busChanges).append(",");
+            JsonObject resp = new JsonObject();
+            resp.addProperty("found", true);
+            resp.addProperty("totalFare", result.getTotalFare());
+            resp.addProperty("totalDistanceKm", result.getTotalDistanceKm());
+            resp.addProperty("busChanges", busChanges);
 
             // Stop Path
-            sb.append("\"stopPath\":[");
-            List<Integer> stopIds = result.getStopPath();
-            for (int i = 0; i < stopIds.size(); i++) {
-                if (i > 0) sb.append(",");
-                BusStop s = dataStore.getStopById(stopIds.get(i));
+            JsonArray stopPathArray = new JsonArray();
+            for (int id : result.getStopPath()) {
+                BusStop s = dataStore.getStopById(id);
                 if (s != null) {
-                    sb.append(stopToJson(s));
+                    stopPathArray.add(gson.toJsonTree(s));
                 } else {
-                    sb.append("{\"stopId\":").append(stopIds.get(i)).append(",\"name\":\"Stop #").append(stopIds.get(i)).append("\"}");
+                    JsonObject fallback = new JsonObject();
+                    fallback.addProperty("stopId", id);
+                    fallback.addProperty("name", "Stop #" + id);
+                    stopPathArray.add(fallback);
                 }
             }
-            sb.append("],");
+            resp.add("stopPath", stopPathArray);
 
-            // Edge / Segment Path
-            sb.append("\"segments\":[");
-            List<RouteSegment> segs = result.getSegments();
-            for (int i = 0; i < segs.size(); i++) {
-                if (i > 0) sb.append(",");
-                RouteSegment seg = segs.get(i);
+            // Segments Path
+            JsonArray segmentArray = new JsonArray();
+            for (RouteSegment seg : result.getSegments()) {
                 BusStop from = dataStore.getStopById(seg.getFromStopId());
                 BusStop to = dataStore.getStopById(seg.getToStopId());
                 BusRoute route = dataStore.getRouteById(seg.getRouteId());
 
-                sb.append("{");
-                sb.append("\"routeId\":").append(seg.getRouteId()).append(",");
-                sb.append("\"routeName\":\"").append(escapeJson(seg.getRouteName())).append("\",");
-                sb.append("\"operatorName\":\"").append(escapeJson(route != null ? route.getOperatorName() : "Public Bus")).append("\",");
-                sb.append("\"fromStopId\":").append(seg.getFromStopId()).append(",");
-                sb.append("\"fromStopName\":\"").append(escapeJson(from != null ? from.getName() : "Stop #" + seg.getFromStopId())).append("\",");
-                sb.append("\"toStopId\":").append(seg.getToStopId()).append(",");
-                sb.append("\"toStopName\":\"").append(escapeJson(to != null ? to.getName() : "Stop #" + seg.getToStopId())).append("\",");
-                sb.append("\"distanceKm\":").append(seg.getDistanceKm()).append(",");
-                sb.append("\"fareNpr\":").append(seg.getFareNpr()).append(",");
-                sb.append("\"sequenceOrder\":").append(seg.getSequenceOrder());
-                sb.append("}");
-            }
-            sb.append("]");
+                JsonObject segObj = new JsonObject();
+                segObj.addProperty("routeId", seg.getRouteId());
+                segObj.addProperty("routeName", seg.getRouteName());
+                segObj.addProperty("operatorName", route != null ? route.getOperatorName() : "Public Bus");
+                segObj.addProperty("fromStopId", seg.getFromStopId());
+                segObj.addProperty("fromStopName", from != null ? from.getName() : "Stop #" + seg.getFromStopId());
+                segObj.addProperty("toStopId", seg.getToStopId());
+                segObj.addProperty("toStopName", to != null ? to.getName() : "Stop #" + seg.getToStopId());
+                segObj.addProperty("distanceKm", seg.getDistanceKm());
+                segObj.addProperty("fareNpr", seg.getFareNpr());
+                segObj.addProperty("sequenceOrder", seg.getSequenceOrder());
 
-            sb.append("}");
-            sendJsonResponse(exchange, 200, sb.toString());
+                segmentArray.add(segObj);
+            }
+            resp.add("segments", segmentArray);
+
+            sendJsonResponse(exchange, 200, gson.toJson(resp));
         }
     }
 
     // =========================================================================
-    // API: Auth Handler
+    // API: Auth Handler (Issues Session Tokens)
     // =========================================================================
     static class AuthHandler implements HttpHandler {
         @Override
@@ -405,17 +479,28 @@ public class WebServer {
             }
 
             String body = readBody(exchange);
-            Map<String, String> json = parseSimpleJson(body);
-            String email = json.getOrDefault("email", "").trim();
-            String password = json.getOrDefault("password", "").trim();
+            JsonObject json = parseJsonObject(body);
+            String email = json.has("email") ? json.get("email").getAsString().trim() : "";
+            String password = json.has("password") ? json.get("password").getAsString().trim() : "";
 
             User user = dataStore.authenticate(email, password);
             if (user != null) {
-                String resp = String.format(
-                        "{\"success\":true,\"user\":{\"userId\":%d,\"fullName\":\"%s\",\"email\":\"%s\",\"role\":\"%s\"}}",
-                        user.getUserId(), escapeJson(user.getFullName()), escapeJson(user.getEmail()), user.getRole().name()
-                );
-                sendJsonResponse(exchange, 200, resp);
+                String token = UUID.randomUUID().toString();
+                UserSession session = new UserSession(token, user);
+                activeSessions.put(token, session);
+
+                JsonObject resp = new JsonObject();
+                resp.addProperty("success", true);
+                resp.addProperty("token", token);
+
+                JsonObject uObj = new JsonObject();
+                uObj.addProperty("userId", user.getUserId());
+                uObj.addProperty("fullName", user.getFullName());
+                uObj.addProperty("email", user.getEmail());
+                uObj.addProperty("role", user.getRole().name());
+                resp.add("user", uObj);
+
+                sendJsonResponse(exchange, 200, gson.toJson(resp));
             } else {
                 sendJsonResponse(exchange, 401, "{\"success\":false,\"error\":\"Invalid email or password. Use admin@ktmbus.gov.np / admin123 or passenger@example.com / passenger123\"}");
             }
@@ -435,6 +520,8 @@ public class WebServer {
             }
 
             if ("POST".equalsIgnoreCase(exchange.getRequestMethod())) {
+                if (!requireAdminAuth(exchange)) return;
+
                 dataStore.resetToDefault();
                 sendJsonResponse(exchange, 200, "{\"success\":true,\"message\":\"Transit database reset to Kathmandu Valley defaults.\"}");
             } else {
@@ -444,54 +531,52 @@ public class WebServer {
     }
 
     // =========================================================================
-    // Helpers: JSON Serialization & Parsing
+    // Helpers: Input Parsing & Validation
     // =========================================================================
-    private static String stopToJson(BusStop s) {
-        return String.format(
-                "{\"stopId\":%d,\"name\":\"%s\",\"area\":\"%s\",\"latitude\":%.6f,\"longitude\":%.6f}",
-                s.getStopId(), escapeJson(s.getName()), escapeJson(s.getArea()), s.getLatitude(), s.getLongitude()
-        );
+    private static JsonObject parseJsonObject(String jsonStr) {
+        if (jsonStr == null || jsonStr.trim().isEmpty()) {
+            return new JsonObject();
+        }
+        try {
+            return gson.fromJson(jsonStr, JsonObject.class);
+        } catch (Exception e) {
+            return new JsonObject();
+        }
     }
 
-    private static String routeToJson(BusRoute r) {
-        return String.format(
-                "{\"routeId\":%d,\"routeName\":\"%s\",\"operatorName\":\"%s\",\"farePerKm\":%.2f}",
-                r.getRouteId(), escapeJson(r.getRouteName()), escapeJson(r.getOperatorName()), r.getFarePerKm()
-        );
-    }
-
-    private static String segmentToJson(RouteSegment s) {
-        return String.format(
-                "{\"routeId\":%d,\"routeName\":\"%s\",\"fromStopId\":%d,\"toStopId\":%d,\"distanceKm\":%.2f,\"fareNpr\":%.2f,\"sequenceOrder\":%d}",
-                s.getRouteId(), escapeJson(s.getRouteName()), s.getFromStopId(), s.getToStopId(), s.getDistanceKm(), s.getFareNpr(), s.getSequenceOrder()
-        );
-    }
-
-    private static String escapeJson(String s) {
-        if (s == null) return "";
-        return s.replace("\\", "\\\\")
-                .replace("\"", "\\\"")
-                .replace("\b", "\\b")
-                .replace("\f", "\\f")
-                .replace("\n", "\\n")
-                .replace("\r", "\\r")
-                .replace("\t", "\\t");
-    }
-
-    private static Map<String, String> parseSimpleJson(String json) {
-        Map<String, String> map = new HashMap<>();
-        if (json == null || json.trim().isEmpty()) return map;
-
-        java.util.regex.Pattern p = java.util.regex.Pattern.compile("[\"']?([a-zA-Z0-9_]+)[\"']?\\s*:\\s*(?:\"([^\"]*)\"|'([^']*)'|([^,}\\s]+))");
-        java.util.regex.Matcher m = p.matcher(json);
-        while (m.find()) {
-            String key = m.group(1);
-            String val = m.group(2) != null ? m.group(2) : (m.group(3) != null ? m.group(3) : m.group(4));
-            if (val != null) {
-                map.put(key.trim(), val.trim());
+    private static Double getDoubleOrNull(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) return null;
+        try {
+            return json.get(key).getAsDouble();
+        } catch (Exception e) {
+            try {
+                return Double.parseDouble(json.get(key).getAsString().trim());
+            } catch (Exception ex) {
+                return null;
             }
         }
-        return map;
+    }
+
+    private static Integer getIntOrNull(JsonObject json, String key) {
+        if (!json.has(key) || json.get(key).isJsonNull()) return null;
+        try {
+            return json.get(key).getAsInt();
+        } catch (Exception e) {
+            try {
+                return Integer.parseInt(json.get(key).getAsString().trim());
+            } catch (Exception ex) {
+                return null;
+            }
+        }
+    }
+
+    private static int parseIntSafe(String s, int defaultVal) {
+        if (s == null) return defaultVal;
+        try {
+            return Integer.parseInt(s.trim());
+        } catch (Exception e) {
+            return defaultVal;
+        }
     }
 
     private static String readBody(HttpExchange exchange) throws IOException {
@@ -532,23 +617,5 @@ public class WebServer {
         if (lower.endsWith(".svg")) return "image/svg+xml";
         if (lower.endsWith(".ico")) return "image/x-icon";
         return "text/plain; charset=UTF-8";
-    }
-
-    private static int parseIntSafe(String s, int defaultVal) {
-        if (s == null) return defaultVal;
-        try {
-            return Integer.parseInt(s.trim());
-        } catch (Exception e) {
-            return defaultVal;
-        }
-    }
-
-    private static double parseDoubleSafe(String s, double defaultVal) {
-        if (s == null) return defaultVal;
-        try {
-            return Double.parseDouble(s.trim());
-        } catch (Exception e) {
-            return defaultVal;
-        }
     }
 }

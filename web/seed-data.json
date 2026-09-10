@@ -1,0 +1,55 @@
+{
+  "stops": [
+    { "stopId": 1, "name": "Ratna Park", "area": "Kathmandu", "latitude": 27.7040, "longitude": 85.3140 },
+    { "stopId": 2, "name": "Sundhara", "area": "Kathmandu", "latitude": 27.6988, "longitude": 85.3122 },
+    { "stopId": 3, "name": "New Baneshwor", "area": "Baneshwor", "latitude": 27.6928, "longitude": 85.3405 },
+    { "stopId": 4, "name": "Koteshwor", "area": "Koteshwor", "latitude": 27.6776, "longitude": 85.3486 },
+    { "stopId": 5, "name": "Tribhuvan Airport", "area": "Sinamangal", "latitude": 27.6966, "longitude": 85.3591 },
+    { "stopId": 6, "name": "Kalanki", "area": "Kalanki", "latitude": 27.6939, "longitude": 85.2809 },
+    { "stopId": 7, "name": "Balkhu", "area": "Kirtipur Road", "latitude": 27.6858, "longitude": 85.2966 },
+    { "stopId": 8, "name": "Kalimati", "area": "Kalimati", "latitude": 27.6971, "longitude": 85.3018 },
+    { "stopId": 9, "name": "Balaju", "area": "Balaju", "latitude": 27.7280, "longitude": 85.3050 },
+    { "stopId": 10, "name": "Gongabu Bus Park", "area": "Gongabu", "latitude": 27.7326, "longitude": 85.3193 },
+    { "stopId": 11, "name": "Swayambhu", "area": "Swayambhu", "latitude": 27.7150, "longitude": 85.2903 },
+    { "stopId": 12, "name": "Lagankhel", "area": "Lalitpur", "latitude": 27.6667, "longitude": 85.3235 },
+    { "stopId": 13, "name": "Patan Dhoka", "area": "Lalitpur", "latitude": 27.6792, "longitude": 85.3200 },
+    { "stopId": 14, "name": "Jawalakhel", "area": "Lalitpur", "latitude": 27.6742, "longitude": 85.3126 },
+    { "stopId": 15, "name": "Bhaktapur Durbar Square", "area": "Bhaktapur", "latitude": 27.6710, "longitude": 85.4285 },
+    { "stopId": 16, "name": "Suryabinayak", "area": "Bhaktapur", "latitude": 27.6656, "longitude": 85.4436 },
+    { "stopId": 17, "name": "Chabahil", "area": "Chabahil", "latitude": 27.7175, "longitude": 85.3459 },
+    { "stopId": 18, "name": "Boudha", "area": "Boudha", "latitude": 27.7215, "longitude": 85.3620 }
+  ],
+  "routes": [
+    { "routeId": 1, "routeName": "Route 1: Ratnapark - Airport - Koteshwor", "operatorName": "Sajha Yatayat", "farePerKm": 4.5 },
+    { "routeId": 2, "routeName": "Route 2: Ratnapark - Kalanki - Balkhu", "operatorName": "Nepal Yatayat", "farePerKm": 4.0 },
+    { "routeId": 3, "routeName": "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", "operatorName": "City Bus Service", "farePerKm": 4.5 },
+    { "routeId": 4, "routeName": "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", "operatorName": "Sajha Yatayat", "farePerKm": 4.0 },
+    { "routeId": 5, "routeName": "Route 5: Koteshwor - Chabahil - Boudha", "operatorName": "Boudha Sewa Yatayat", "farePerKm": 5.0 },
+    { "routeId": 6, "routeName": "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", "operatorName": "Bhaktapur Yatayat", "farePerKm": 5.5 }
+  ],
+  "segments": [
+    { "routeId": 1, "routeName": "Route 1: Ratnapark - Airport - Koteshwor", "fromStopId": 1, "toStopId": 2, "distanceKm": 1.2, "fareNpr": 15.0, "sequenceOrder": 1 },
+    { "routeId": 1, "routeName": "Route 1: Ratnapark - Airport - Koteshwor", "fromStopId": 2, "toStopId": 3, "distanceKm": 3.0, "fareNpr": 15.0, "sequenceOrder": 2 },
+    { "routeId": 1, "routeName": "Route 1: Ratnapark - Airport - Koteshwor", "fromStopId": 3, "toStopId": 5, "distanceKm": 2.5, "fareNpr": 15.0, "sequenceOrder": 3 },
+    { "routeId": 1, "routeName": "Route 1: Ratnapark - Airport - Koteshwor", "fromStopId": 5, "toStopId": 4, "distanceKm": 2.0, "fareNpr": 15.0, "sequenceOrder": 4 },
+
+    { "routeId": 2, "routeName": "Route 2: Ratnapark - Kalanki - Balkhu", "fromStopId": 1, "toStopId": 8, "distanceKm": 2.8, "fareNpr": 15.0, "sequenceOrder": 1 },
+    { "routeId": 2, "routeName": "Route 2: Ratnapark - Kalanki - Balkhu", "fromStopId": 8, "toStopId": 6, "distanceKm": 2.6, "fareNpr": 15.0, "sequenceOrder": 2 },
+    { "routeId": 2, "routeName": "Route 2: Ratnapark - Kalanki - Balkhu", "fromStopId": 6, "toStopId": 7, "distanceKm": 1.8, "fareNpr": 15.0, "sequenceOrder": 3 },
+
+    { "routeId": 3, "routeName": "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", "fromStopId": 10, "toStopId": 9, "distanceKm": 1.5, "fareNpr": 15.0, "sequenceOrder": 1 },
+    { "routeId": 3, "routeName": "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", "fromStopId": 9, "toStopId": 11, "distanceKm": 2.2, "fareNpr": 15.0, "sequenceOrder": 2 },
+    { "routeId": 3, "routeName": "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", "fromStopId": 11, "toStopId": 8, "distanceKm": 2.4, "fareNpr": 15.0, "sequenceOrder": 3 },
+
+    { "routeId": 4, "routeName": "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", "fromStopId": 12, "toStopId": 13, "distanceKm": 1.6, "fareNpr": 15.0, "sequenceOrder": 1 },
+    { "routeId": 4, "routeName": "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", "fromStopId": 13, "toStopId": 14, "distanceKm": 1.4, "fareNpr": 15.0, "sequenceOrder": 2 },
+
+    { "routeId": 5, "routeName": "Route 5: Koteshwor - Chabahil - Boudha", "fromStopId": 4, "toStopId": 17, "distanceKm": 3.2, "fareNpr": 20.0, "sequenceOrder": 1 },
+    { "routeId": 5, "routeName": "Route 5: Koteshwor - Chabahil - Boudha", "fromStopId": 17, "toStopId": 18, "distanceKm": 1.8, "fareNpr": 15.0, "sequenceOrder": 2 },
+
+    { "routeId": 6, "routeName": "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", "fromStopId": 1, "toStopId": 3, "distanceKm": 3.5, "fareNpr": 20.0, "sequenceOrder": 1 },
+    { "routeId": 6, "routeName": "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", "fromStopId": 3, "toStopId": 4, "distanceKm": 1.6, "fareNpr": 15.0, "sequenceOrder": 2 },
+    { "routeId": 6, "routeName": "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", "fromStopId": 4, "toStopId": 16, "distanceKm": 9.0, "fareNpr": 35.0, "sequenceOrder": 3 },
+    { "routeId": 6, "routeName": "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", "fromStopId": 16, "toStopId": 15, "distanceKm": 2.0, "fareNpr": 15.0, "sequenceOrder": 4 }
+  ]
+}

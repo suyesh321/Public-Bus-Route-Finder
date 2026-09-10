@@ -63,8 +63,8 @@ CREATE TABLE route_segments (
 -- Seed: demo accounts
 -- ---------------------------------------------
 INSERT INTO users (full_name, email, password, role) VALUES
-('Valley Transit Admin', 'admin@ktmbus.gov.np', 'admin123', 'ADMIN'),
-('Sample Passenger', 'passenger@example.com', 'passenger123', 'PASSENGER');
+('Valley Transit Admin', 'admin@ktmbus.gov.np', '$2a$10$KF83GaamFYVeClOyk09Bzuu6SSZ7CrB0nsfqgUbumGdmBYirmfklq', 'ADMIN'),
+('Sample Passenger', 'passenger@example.com', '$2a$10$4N6CZizJETFVXUGbLG1zO.k2npGZDyNBUSf1UomekGHfpdKjtpBby', 'PASSENGER');
 
 -- ---------------------------------------------
 -- Seed: bus stops (approximate real Kathmandu Valley locations)

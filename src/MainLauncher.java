@@ -7,7 +7,7 @@
  * Run this class (right click -> Run) instead of Main.java.
  */
 public class MainLauncher {
-    public static void main(String[] args) {
+    public static void main(String[] args) throws Exception {
         Main.main(args);
     }
 }

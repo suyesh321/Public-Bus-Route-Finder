@@ -105,11 +105,16 @@ public class RouteFinderService {
      * journey (i.e. number of transfers + 1).
      */
     public int countBusChanges(List<RouteSegment> edgePath) {
-        Set<Integer> distinctRoutes = new HashSet<>();
-        for (RouteSegment edge : edgePath) {
-            distinctRoutes.add(edge.getRouteId());
+        if (edgePath == null || edgePath.isEmpty()) {
+            return 0;
         }
-        return distinctRoutes.size();
+        int count = 1;
+        for (int i = 1; i < edgePath.size(); i++) {
+            if (edgePath.get(i).getRouteId() != edgePath.get(i - 1).getRouteId()) {
+                count++;
+            }
+        }
+        return count;
     }
 
     private static class Node {

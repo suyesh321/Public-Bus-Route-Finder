@@ -13,12 +13,17 @@ import java.sql.SQLException;
  */
 public class DatabaseConnection {
 
-    private static final String URL =
+    private static final String DEFAULT_URL =
             "jdbc:mysql://localhost:3306/kathmandu_bus_db?useSSL=false&serverTimezone=UTC";
+    private static final String DEFAULT_USER = "root";
+    private static final String DEFAULT_PASSWORD = "";
 
-    private static final String USER = "root";
-
-    private static final String PASSWORD = "your_password";
+    private static final String URL =
+            System.getenv("DB_URL") != null ? System.getenv("DB_URL") : DEFAULT_URL;
+    private static final String USER =
+            System.getenv("DB_USER") != null ? System.getenv("DB_USER") : DEFAULT_USER;
+    private static final String PASSWORD =
+            System.getenv("DB_PASSWORD") != null ? System.getenv("DB_PASSWORD") : DEFAULT_PASSWORD;
 
     private static Connection connection;
 

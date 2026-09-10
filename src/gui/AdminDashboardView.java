@@ -97,8 +97,24 @@ public class AdminDashboardView {
                 statusLabel.setText("Stop name and area are required.");
                 return;
             }
-            double lat = parseOrZero(latField.getText());
-            double lon = parseOrZero(lonField.getText());
+            double lat = 0.0;
+            if (!latField.getText().isBlank()) {
+                Double parsedLat = parseDoubleOrNull(latField.getText());
+                if (parsedLat == null || parsedLat < -90.0 || parsedLat > 90.0) {
+                    statusLabel.setText("Latitude must be a valid number between -90 and 90.");
+                    return;
+                }
+                lat = parsedLat;
+            }
+            double lon = 0.0;
+            if (!lonField.getText().isBlank()) {
+                Double parsedLon = parseDoubleOrNull(lonField.getText());
+                if (parsedLon == null || parsedLon < -180.0 || parsedLon > 180.0) {
+                    statusLabel.setText("Longitude must be a valid number between -180 and 180.");
+                    return;
+                }
+                lon = parsedLon;
+            }
             BusStop stop = new BusStop(0, nameField.getText().trim(), areaField.getText().trim(), lat, lon);
             boolean ok = stopDAO.addStop(stop);
             statusLabel.setText(ok ? "Stop added." : "Failed to add stop.");
@@ -162,7 +178,11 @@ public class AdminDashboardView {
                 statusLabel.setText("Route name and operator are required.");
                 return;
             }
-            double rate = parseOrZero(rateField.getText());
+            Double rate = parsePositiveDouble(rateField.getText());
+            if (rate == null) {
+                statusLabel.setText("Fare per km must be a positive number.");
+                return;
+            }
             BusRoute route = new BusRoute(0, nameField.getText().trim(), operatorField.getText().trim(), rate);
             boolean ok = routeDAO.addRoute(route);
             statusLabel.setText(ok ? "Route added. Now add its segments in the 'Route Segments' tab."
@@ -209,9 +229,28 @@ public class AdminDashboardView {
                 statusLabel.setText("Choose a route, a from-stop and a to-stop.");
                 return;
             }
-            double distance = parseOrZero(distanceField.getText());
-            double fare = parseOrZero(fareField.getText());
-            int order = (int) parseOrZero(orderField.getText());
+            if (from.getStopId() == to.getStopId()) {
+                statusLabel.setText("From-stop and to-stop must be different.");
+                return;
+            }
+
+            Double distance = parsePositiveDouble(distanceField.getText());
+            if (distance == null) {
+                statusLabel.setText("Distance must be a positive number.");
+                return;
+            }
+
+            Double fare = parsePositiveDouble(fareField.getText());
+            if (fare == null) {
+                statusLabel.setText("Fare must be a positive number.");
+                return;
+            }
+
+            Integer order = parsePositiveInt(orderField.getText());
+            if (order == null) {
+                statusLabel.setText("Sequence order must be a positive integer.");
+                return;
+            }
 
             RouteSegment segment = new RouteSegment(route.getRouteId(), route.getRouteName(),
                     from.getStopId(), to.getStopId(), distance, fare, order);
@@ -249,11 +288,27 @@ public class AdminDashboardView {
         routeTable.setItems(FXCollections.observableArrayList(routeDAO.getAllRoutes()));
     }
 
-    private double parseOrZero(String text) {
+    private Double parseDoubleOrNull(String text) {
+        if (text == null || text.isBlank()) return null;
         try {
             return Double.parseDouble(text.trim());
         } catch (Exception e) {
-            return 0.0;
+            return null;
+        }
+    }
+
+    private Double parsePositiveDouble(String text) {
+        Double val = parseDoubleOrNull(text);
+        return (val != null && val > 0) ? val : null;
+    }
+
+    private Integer parsePositiveInt(String text) {
+        if (text == null || text.isBlank()) return null;
+        try {
+            int val = Integer.parseInt(text.trim());
+            return val > 0 ? val : null;
+        } catch (Exception e) {
+            return null;
         }
     }
 }

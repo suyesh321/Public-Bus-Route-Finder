@@ -4,7 +4,9 @@
  */
 
 // =============================================================================
-// Default Seed Data (Kathmandu Valley) — Fallback & Instant Offline Capability
+// Canonical Seed Dataset (Kathmandu Valley)
+// Single Source of Truth loaded from web/seed-data.json
+// Note: Hand-maintained fallback constants below match web/seed-data.json
 // =============================================================================
 const DEFAULT_STOPS = [
   { stopId: 1, name: "Ratna Park", area: "Kathmandu", latitude: 27.7040, longitude: 85.3140 },
@@ -37,26 +39,20 @@ const DEFAULT_ROUTES = [
 ];
 
 const DEFAULT_SEGMENTS = [
-  // Route 1
   { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 1, toStopId: 2, distanceKm: 1.2, fareNpr: 15.0, sequenceOrder: 1 },
   { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 2, toStopId: 3, distanceKm: 3.0, fareNpr: 15.0, sequenceOrder: 2 },
   { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 3, toStopId: 5, distanceKm: 2.5, fareNpr: 15.0, sequenceOrder: 3 },
   { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 5, toStopId: 4, distanceKm: 2.0, fareNpr: 15.0, sequenceOrder: 4 },
-  // Route 2
   { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 1, toStopId: 8, distanceKm: 2.8, fareNpr: 15.0, sequenceOrder: 1 },
   { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 8, toStopId: 6, distanceKm: 2.6, fareNpr: 15.0, sequenceOrder: 2 },
   { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 6, toStopId: 7, distanceKm: 1.8, fareNpr: 15.0, sequenceOrder: 3 },
-  // Route 3
   { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 10, toStopId: 9, distanceKm: 1.5, fareNpr: 15.0, sequenceOrder: 1 },
   { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 9, toStopId: 11, distanceKm: 2.2, fareNpr: 15.0, sequenceOrder: 2 },
   { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 11, toStopId: 8, distanceKm: 2.4, fareNpr: 15.0, sequenceOrder: 3 },
-  // Route 4
   { routeId: 4, routeName: "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", fromStopId: 12, toStopId: 13, distanceKm: 1.6, fareNpr: 15.0, sequenceOrder: 1 },
   { routeId: 4, routeName: "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", fromStopId: 13, toStopId: 14, distanceKm: 1.4, fareNpr: 15.0, sequenceOrder: 2 },
-  // Route 5
   { routeId: 5, routeName: "Route 5: Koteshwor - Chabahil - Boudha", fromStopId: 4, toStopId: 17, distanceKm: 3.2, fareNpr: 20.0, sequenceOrder: 1 },
   { routeId: 5, routeName: "Route 5: Koteshwor - Chabahil - Boudha", fromStopId: 17, toStopId: 18, distanceKm: 1.8, fareNpr: 15.0, sequenceOrder: 2 },
-  // Route 6
   { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 1, toStopId: 3, distanceKm: 3.5, fareNpr: 20.0, sequenceOrder: 1 },
   { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 3, toStopId: 4, distanceKm: 1.6, fareNpr: 15.0, sequenceOrder: 2 },
   { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 4, toStopId: 16, distanceKm: 9.0, fareNpr: 35.0, sequenceOrder: 3 },
@@ -64,10 +60,11 @@ const DEFAULT_SEGMENTS = [
 ];
 
 // =============================================================================
-// App State
+// App State & Server Auth Session
 // =============================================================================
 const state = {
   currentUser: { fullName: "Guest / Passenger", role: "PASSENGER", email: "" },
+  authToken: localStorage.getItem("ktm_auth_token") || null,
   stops: [],
   routes: [],
   segments: [],
@@ -78,6 +75,14 @@ const state = {
   backendOnline: false,
   apiBase: window.location.origin.includes("http") ? window.location.origin : "http://localhost:8080"
 };
+
+function getAuthHeaders() {
+  const headers = { "Content-Type": "application/json" };
+  if (state.authToken) {
+    headers["Authorization"] = `Bearer ${state.authToken}`;
+  }
+  return headers;
+}
 
 // =============================================================================
 // Initialization
@@ -154,7 +159,7 @@ function updateMapTiles(theme) {
 }
 
 // =============================================================================
-// Data Synchronization (Java Backend or In-Memory Seed Fallback)
+// Data Synchronization (Java Backend or Canonical Seed Data)
 // =============================================================================
 async function syncWithBackendOrSeed() {
   const statusEl = document.getElementById("backend-status");
@@ -179,10 +184,8 @@ async function syncWithBackendOrSeed() {
       throw new Error("Backend response not 200");
     }
   } catch (err) {
-    console.warn("Backend unavailable, loading local Kathmandu dataset...", err);
-    state.stops = JSON.parse(localStorage.getItem("ktm_stops")) || DEFAULT_STOPS;
-    state.routes = JSON.parse(localStorage.getItem("ktm_routes")) || DEFAULT_ROUTES;
-    state.segments = JSON.parse(localStorage.getItem("ktm_segments")) || DEFAULT_SEGMENTS;
+    console.warn("Backend unavailable, loading canonical Kathmandu dataset...", err);
+    await loadCanonicalSeedData();
     state.backendOnline = false;
 
     statusEl.classList.remove("online");
@@ -191,6 +194,36 @@ async function syncWithBackendOrSeed() {
   }
 
   renderAllStopsAndRoutes();
+}
+
+async function loadCanonicalSeedData() {
+  const localStops = localStorage.getItem("ktm_stops");
+  const localRoutes = localStorage.getItem("ktm_routes");
+  const localSegments = localStorage.getItem("ktm_segments");
+
+  if (localStops && localRoutes && localSegments) {
+    state.stops = JSON.parse(localStops);
+    state.routes = JSON.parse(localRoutes);
+    state.segments = JSON.parse(localSegments);
+    return;
+  }
+
+  try {
+    const res = await fetch("seed-data.json");
+    if (res.ok) {
+      const seed = await res.json();
+      state.stops = seed.stops || DEFAULT_STOPS;
+      state.routes = seed.routes || DEFAULT_ROUTES;
+      state.segments = seed.segments || DEFAULT_SEGMENTS;
+      return;
+    }
+  } catch (e) {
+    console.warn("Could not fetch seed-data.json, using bundled constants", e);
+  }
+
+  state.stops = DEFAULT_STOPS;
+  state.routes = DEFAULT_ROUTES;
+  state.segments = DEFAULT_SEGMENTS;
 }
 
 // =============================================================================
@@ -224,7 +257,6 @@ function renderStopDropdowns() {
 }
 
 function renderStopMarkers() {
-  // Clear existing
   Object.values(state.stopMarkers).forEach(m => state.map.removeLayer(m));
   state.stopMarkers = {};
 
@@ -355,7 +387,6 @@ window.highlightRoute = function(routeId) {
 // Dijkstra Pathfinding Engine (Client-side & API)
 // =============================================================================
 async function calculateRoute(fromStopId, toStopId, optimizeBy) {
-  // If backend is online, request Java WebServer
   if (state.backendOnline) {
     try {
       const res = await fetch(`${state.apiBase}/api/find-route`, {
@@ -371,7 +402,6 @@ async function calculateRoute(fromStopId, toStopId, optimizeBy) {
     }
   }
 
-  // Client-side Dijkstra fallback (mirroring Java RouteFinderService)
   return runClientDijkstra(fromStopId, toStopId, optimizeBy);
 }
 
@@ -387,7 +417,6 @@ function runClientDijkstra(startStopId, destStopId, optimizeBy) {
     if (!graph[seg.toStopId]) graph[seg.toStopId] = [];
 
     graph[seg.fromStopId].push(seg);
-    // Reverse edge
     graph[seg.toStopId].push({
       routeId: seg.routeId,
       routeName: seg.routeName,
@@ -451,7 +480,17 @@ function runClientDijkstra(startStopId, destStopId, optimizeBy) {
 
   const totalFare = edgePath.reduce((acc, e) => acc + e.fareNpr, 0);
   const totalDistance = edgePath.reduce((acc, e) => acc + e.distanceKm, 0);
-  const distinctRoutes = new Set(edgePath.map(e => e.routeId)).size;
+
+  // Corrected sequential boarding count
+  let busChanges = 0;
+  if (edgePath.length > 0) {
+    busChanges = 1;
+    for (let i = 1; i < edgePath.length; i++) {
+      if (edgePath[i].routeId !== edgePath[i - 1].routeId) {
+        busChanges++;
+      }
+    }
+  }
 
   const resolvedStops = stopIdPath.map(id => state.stops.find(s => s.stopId === id) || { stopId: id, name: "Stop #" + id });
   const resolvedSegments = edgePath.map(e => {
@@ -470,7 +509,7 @@ function runClientDijkstra(startStopId, destStopId, optimizeBy) {
     found: true,
     totalFare,
     totalDistanceKm: totalDistance,
-    busChanges: distinctRoutes,
+    busChanges,
     stopPath: resolvedStops,
     segments: resolvedSegments
   };
@@ -548,14 +587,12 @@ function displayJourneyResult(result, optimizeBy) {
     `;
   }).join("");
 
-  // Map Animation & Highlight
   highlightJourneyOnMap(result);
 }
 
 function highlightJourneyOnMap(result) {
   state.activeJourneyLayer.clearLayers();
 
-  // Reset markers
   Object.values(state.stopMarkers).forEach(m => {
     const el = m.getElement();
     if (el) {
@@ -577,14 +614,12 @@ function highlightJourneyOnMap(result) {
   });
 
   if (latlngs.length > 0) {
-    // Glowing background line
     L.polyline(latlngs, {
       color: "#10b981",
       weight: 8,
       opacity: 0.4
     }).addTo(state.activeJourneyLayer);
 
-    // Foreground path
     const pathLine = L.polyline(latlngs, {
       color: "#ffffff",
       weight: 4,
@@ -638,7 +673,15 @@ window.deleteStop = async function(id) {
 
   if (state.backendOnline) {
     try {
-      await fetch(`${state.apiBase}/api/stops?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`${state.apiBase}/api/stops?id=${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        showToast(errData.error || "Delete stop unauthorized", "error");
+        return;
+      }
     } catch (e) {
       console.warn("Backend delete failed", e);
     }
@@ -656,7 +699,15 @@ window.deleteRoute = async function(id) {
 
   if (state.backendOnline) {
     try {
-      await fetch(`${state.apiBase}/api/routes?id=${id}`, { method: "DELETE" });
+      const res = await fetch(`${state.apiBase}/api/routes?id=${id}`, {
+        method: "DELETE",
+        headers: getAuthHeaders()
+      });
+      if (!res.ok) {
+        const errData = await res.json();
+        showToast(errData.error || "Delete route unauthorized", "error");
+        return;
+      }
     } catch (e) {
       console.warn("Backend delete failed", e);
     }
@@ -679,7 +730,6 @@ function saveLocalState() {
 // Event Listeners & UI Binding
 // =============================================================================
 function setupEventListeners() {
-  // Navigation Tabs
   const navBtns = {
     "nav-planner": "panel-planner",
     "nav-routes": "panel-routes",
@@ -751,13 +801,28 @@ function setupEventListeners() {
     });
   });
 
-  // Admin Add Stop Form
+  // Admin Add Stop Form with Real Input Validation
   document.getElementById("add-stop-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const name = document.getElementById("new-stop-name").value.trim();
     const area = document.getElementById("new-stop-area").value.trim();
-    const lat = parseFloat(document.getElementById("new-stop-lat").value);
-    const lon = parseFloat(document.getElementById("new-stop-lon").value);
+    const latStr = document.getElementById("new-stop-lat").value.trim();
+    const lonStr = document.getElementById("new-stop-lon").value.trim();
+
+    if (!name || !area) {
+      showToast("Stop name and area are required.", "error");
+      return;
+    }
+    const lat = parseFloat(latStr);
+    const lon = parseFloat(lonStr);
+    if (isNaN(lat) || lat < -90 || lat > 90) {
+      showToast("Please provide a valid latitude between -90 and 90.", "error");
+      return;
+    }
+    if (isNaN(lon) || lon < -180 || lon > 180) {
+      showToast("Please provide a valid longitude between -180 and 180.", "error");
+      return;
+    }
 
     let newStop = { stopId: Date.now(), name, area, latitude: lat, longitude: lon };
 
@@ -765,10 +830,16 @@ function setupEventListeners() {
       try {
         const res = await fetch(`${state.apiBase}/api/stops`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ name, area, latitude: lat, longitude: lon })
         });
-        if (res.ok) newStop = await res.json();
+        if (res.ok) {
+          newStop = await res.json();
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Failed to create stop on server", "error");
+          return;
+        }
       } catch (err) {
         console.warn("Backend add stop failed", err);
       }
@@ -781,12 +852,22 @@ function setupEventListeners() {
     showToast(`Bus stop "${name}" created!`);
   });
 
-  // Admin Add Route Form
+  // Admin Add Route Form with Real Input Validation
   document.getElementById("add-route-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     const routeName = document.getElementById("new-route-name").value.trim();
     const operatorName = document.getElementById("new-route-operator").value.trim();
-    const farePerKm = parseFloat(document.getElementById("new-route-fare").value);
+    const fareStr = document.getElementById("new-route-fare").value.trim();
+
+    if (!routeName || !operatorName) {
+      showToast("Route name and operator are required.", "error");
+      return;
+    }
+    const farePerKm = parseFloat(fareStr);
+    if (isNaN(farePerKm) || farePerKm <= 0) {
+      showToast("Fare per km must be a positive number.", "error");
+      return;
+    }
 
     let newRoute = { routeId: Date.now(), routeName, operatorName, farePerKm };
 
@@ -794,10 +875,16 @@ function setupEventListeners() {
       try {
         const res = await fetch(`${state.apiBase}/api/routes`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify({ routeName, operatorName, farePerKm })
         });
-        if (res.ok) newRoute = await res.json();
+        if (res.ok) {
+          newRoute = await res.json();
+        } else {
+          const err = await res.json();
+          showToast(err.error || "Failed to create route on server", "error");
+          return;
+        }
       } catch (err) {
         console.warn("Backend add route failed", err);
       }
@@ -810,15 +897,43 @@ function setupEventListeners() {
     showToast(`Bus route "${routeName}" added!`);
   });
 
-  // Admin Add Segment Form
+  // Admin Add Segment Form with Real Input Validation
   document.getElementById("add-segment-form").addEventListener("submit", async (e) => {
     e.preventDefault();
-    const routeId = parseInt(document.getElementById("segment-route-select").value);
-    const fromStopId = parseInt(document.getElementById("segment-from-select").value);
-    const toStopId = parseInt(document.getElementById("segment-to-select").value);
-    const distanceKm = parseFloat(document.getElementById("segment-distance").value);
-    const fareNpr = parseFloat(document.getElementById("segment-fare").value);
-    const sequenceOrder = parseInt(document.getElementById("segment-order").value);
+    const routeVal = document.getElementById("segment-route-select").value;
+    const fromVal = document.getElementById("segment-from-select").value;
+    const toVal = document.getElementById("segment-to-select").value;
+    const distStr = document.getElementById("segment-distance").value.trim();
+    const fareStr = document.getElementById("segment-fare").value.trim();
+    const orderStr = document.getElementById("segment-order").value.trim();
+
+    const routeId = parseInt(routeVal);
+    const fromStopId = parseInt(fromVal);
+    const toStopId = parseInt(toVal);
+    const distanceKm = parseFloat(distStr);
+    const fareNpr = parseFloat(fareStr);
+    const sequenceOrder = parseInt(orderStr);
+
+    if (isNaN(routeId) || routeId <= 0) {
+      showToast("Please select a valid bus route.", "error");
+      return;
+    }
+    if (isNaN(fromStopId) || fromStopId <= 0 || isNaN(toStopId) || toStopId <= 0 || fromStopId === toStopId) {
+      showToast("Please choose two distinct from and to stops.", "error");
+      return;
+    }
+    if (isNaN(distanceKm) || distanceKm <= 0) {
+      showToast("Distance must be a positive number.", "error");
+      return;
+    }
+    if (isNaN(fareNpr) || fareNpr <= 0) {
+      showToast("Fare must be a positive number.", "error");
+      return;
+    }
+    if (isNaN(sequenceOrder) || sequenceOrder <= 0) {
+      showToast("Sequence order must be a positive integer.", "error");
+      return;
+    }
 
     const route = state.routes.find(r => r.routeId === routeId);
     const seg = {
@@ -833,11 +948,16 @@ function setupEventListeners() {
 
     if (state.backendOnline) {
       try {
-        await fetch(`${state.apiBase}/api/segments`, {
+        const res = await fetch(`${state.apiBase}/api/segments`, {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: getAuthHeaders(),
           body: JSON.stringify(seg)
         });
+        if (!res.ok) {
+          const err = await res.json();
+          showToast(err.error || "Failed to add segment on server", "error");
+          return;
+        }
       } catch (err) {
         console.warn("Backend add segment failed", err);
       }
@@ -856,7 +976,15 @@ function setupEventListeners() {
 
     if (state.backendOnline) {
       try {
-        await fetch(`${state.apiBase}/api/reset`, { method: "POST" });
+        const res = await fetch(`${state.apiBase}/api/reset`, {
+          method: "POST",
+          headers: getAuthHeaders()
+        });
+        if (!res.ok) {
+          const err = await res.json();
+          showToast(err.error || "Reset unauthorized", "error");
+          return;
+        }
       } catch (err) {
         console.warn("Reset API failed", err);
       }
@@ -865,9 +993,7 @@ function setupEventListeners() {
     localStorage.removeItem("ktm_stops");
     localStorage.removeItem("ktm_routes");
     localStorage.removeItem("ktm_segments");
-    state.stops = [...DEFAULT_STOPS];
-    state.routes = [...DEFAULT_ROUTES];
-    state.segments = [...DEFAULT_SEGMENTS];
+    await loadCanonicalSeedData();
     renderAllStopsAndRoutes();
     showToast("Network reset to Kathmandu Valley defaults.");
   });
@@ -905,6 +1031,10 @@ function setupEventListeners() {
         });
         const data = await res.json();
         if (data.success) {
+          state.authToken = data.token;
+          if (data.token) {
+            localStorage.setItem("ktm_auth_token", data.token);
+          }
           setUser(data.user);
           modal.classList.add("hidden");
           errorBanner.classList.add("hidden");
@@ -937,6 +1067,10 @@ function setupEventListeners() {
 
 function setUser(user) {
   state.currentUser = user;
+  if (user.role !== "ADMIN") {
+    state.authToken = null;
+    localStorage.removeItem("ktm_auth_token");
+  }
   document.getElementById("user-display-name").textContent = `${user.fullName} (${user.role})`;
 
   const lockBanner = document.getElementById("admin-lock-banner");
