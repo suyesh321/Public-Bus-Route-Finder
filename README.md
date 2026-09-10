@@ -4,7 +4,6 @@
 > across Kathmandu, Lalitpur, and Bhaktapur using **Dijkstra's algorithm** on a live transit graph.
 
 [![Java](https://img.shields.io/badge/Java-17%2B-orange?logo=openjdk)](https://adoptium.net)
-[![License](https://img.shields.io/badge/License-MIT-blue)](LICENSE)
 [![Status](https://img.shields.io/badge/Status-Active-brightgreen)]()
 
 ---
