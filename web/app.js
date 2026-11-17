@@ -98,26 +98,21 @@ function updateMapTiles(theme) {
     state.map.removeLayer(tileLayer);
   }
 
-  // Free tile providers — no API key required
-  // Light: OpenStreetMap standard tiles
-  // Dark: CartoDB Dark Matter (free, no key needed for raster basemaps)
-  const tileUrl = theme === "dark"
-    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
-
-  const attribution = theme === "dark"
-    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
-    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
+  // Always use OpenStreetMap tiles — free, no API key, no access restrictions
+  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
   tileLayer = L.tileLayer(tileUrl, {
     maxZoom: 19,
-    subdomains: theme === "dark" ? "abcd" : "abc",
-    attribution: attribution
+    subdomains: "abc",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
   }).addTo(state.map);
 
+  // Dark mode: invert + hue-rotate the tiles via CSS for a sleek dark map look
   const mapEl = document.getElementById("leaflet-map");
   if (mapEl) {
-    mapEl.style.filter = "none";
+    mapEl.style.filter = theme === "dark"
+      ? "invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9)"
+      : "none";
   }
 }
 
