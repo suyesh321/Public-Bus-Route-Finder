@@ -85,6 +85,11 @@ function initMap() {
   document.getElementById("recenter-map-btn").addEventListener("click", () => {
     state.map.flyTo(valleyCenter, 13, { duration: 1 });
   });
+
+  // Force Leaflet to recalculate container size after layout settles
+  setTimeout(() => {
+    state.map.invalidateSize();
+  }, 300);
 }
 
 function updateMapTiles(theme) {
