@@ -1,0 +1,17 @@
+{
+  "name": "kathmandu-transit-web",
+  "version": "1.0.0",
+  "description": "Kathmandu Transit - Public Bus Route Finder",
+  "main": "app.js",
+  "scripts": {
+    "dev": "python3 -m http.server 8000",
+    "start": "python3 -m http.server 8000",
+    "test": "echo \"No tests configured\" && exit 0"
+  },
+  "keywords": ["kathmandu", "transit", "bus", "route-finder"],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@vercel/analytics": "^2.0.1"
+  }
+}
