@@ -98,16 +98,21 @@ function updateMapTiles(theme) {
     state.map.removeLayer(tileLayer);
   }
 
-  // High-performance, clean CartoDB Vector-raster tiles
-  // Light: CartoDB Voyager, Dark: CartoDB Dark Matter
+  // Free tile providers — no API key required
+  // Light: OpenStreetMap standard tiles
+  // Dark: CartoDB Dark Matter (free, no key needed for raster basemaps)
   const tileUrl = theme === "dark"
     ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
-    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
+    : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  const attribution = theme === "dark"
+    ? '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    : '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors';
 
   tileLayer = L.tileLayer(tileUrl, {
     maxZoom: 19,
-    subdomains: "abcd",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+    subdomains: theme === "dark" ? "abcd" : "abc",
+    attribution: attribution
   }).addTo(state.map);
 
   const mapEl = document.getElementById("leaflet-map");
