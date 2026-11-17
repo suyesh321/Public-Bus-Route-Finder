@@ -687,6 +687,9 @@ function setupEventListeners() {
     "nav-admin": "panel-admin"
   };
 
+  const mainContent = document.querySelector(".main-content");
+  const navMapBtn = document.getElementById("nav-map");
+
   Object.entries(navBtns).forEach(([btnId, panelId]) => {
     document.getElementById(btnId).addEventListener("click", () => {
       document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
@@ -694,7 +697,45 @@ function setupEventListeners() {
 
       document.querySelectorAll(".panel-section").forEach(p => p.classList.add("hidden"));
       document.getElementById(panelId).classList.remove("hidden");
+      if (mainContent) mainContent.classList.remove("mobile-map-active");
     });
+  });
+
+  if (navMapBtn) {
+    navMapBtn.addEventListener("click", () => {
+      document.querySelectorAll(".nav-btn").forEach(b => b.classList.remove("active"));
+      navMapBtn.classList.add("active");
+      if (mainContent) mainContent.classList.add("mobile-map-active");
+      if (state.map) {
+        setTimeout(() => {
+          state.map.invalidateSize();
+          const activeLayers = state.activeJourneyLayer?.getLayers();
+          if (activeLayers && activeLayers.length > 0) {
+            state.map.fitBounds(activeLayers[0].getBounds(), { padding: [50, 50] });
+          }
+        }, 150);
+      }
+    });
+  }
+
+  const mobileViewMapBtn = document.getElementById("mobile-view-map-btn");
+  if (mobileViewMapBtn) {
+    mobileViewMapBtn.addEventListener("click", () => {
+      if (navMapBtn) navMapBtn.click();
+    });
+  }
+
+  const mobileBackBtn = document.getElementById("mobile-back-to-panel-btn");
+  if (mobileBackBtn) {
+    mobileBackBtn.addEventListener("click", () => {
+      document.getElementById("nav-planner")?.click();
+    });
+  }
+
+  window.addEventListener("resize", () => {
+    if (state.map) {
+      state.map.invalidateSize();
+    }
   });
 
   // Swap Stops Button

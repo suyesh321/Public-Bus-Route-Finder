@@ -1100,16 +1100,291 @@ button, input, select, textarea {
 .custom-bus-stop-icon.active-from { background: var(--origin) !important; }
 .custom-bus-stop-icon.active-to { background: var(--dest) !important; }
 
-@media (max-width: 900px) {
-  .navbar { padding: 0 12px; }
-  .nav-btn span { display: none; }
-  .status-text { display: none; }
+/* Desktop Defaults for Mobile-specific elements */
+.mobile-only-nav,
+.mobile-only {
+  display: none !important;
+}
+
+.mobile-map-jump-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  width: 100%;
+  padding: 10px 14px;
+  margin-top: 8px;
+  border: 1px solid var(--brand);
+  background: var(--brand-soft);
+  color: var(--brand-deep);
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 650;
+  cursor: pointer;
+  transition: background var(--ease), transform var(--ease);
+}
+[data-theme="dark"] .mobile-map-jump-btn {
+  color: var(--brand);
+}
+.mobile-map-jump-btn:hover {
+  background: color-mix(in srgb, var(--brand) 22%, transparent);
+  transform: translateY(-1px);
+}
+
+/* =============================================================================
+   Responsive Design (Tablets & Mobile)
+   ============================================================================= */
+
+/* Medium screens / Tablets (769px to 1024px) */
+@media (min-width: 769px) and (max-width: 1024px) {
   .main-content {
-    grid-template-columns: 1fr;
-    grid-template-rows: 48% 52%;
+    grid-template-columns: 360px 1fr;
+  }
+  .tagline {
+    display: none;
   }
   .sidebar-panel {
+    padding: 18px 16px;
+  }
+}
+
+/* Mobile Devices (max-width: 768px) */
+@media (max-width: 768px) {
+  .app-layout {
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .navbar {
+    height: 52px;
+    padding: 0 10px;
+    gap: 8px;
+  }
+
+  .tagline {
+    display: none;
+  }
+
+  .brand-text h1 {
+    font-size: 1.05rem;
+  }
+
+  .nav-links {
+    padding: 3px;
+    gap: 2px;
+  }
+
+  .nav-btn {
+    padding: 6px 9px;
+    font-size: 0.76rem;
+    gap: 5px;
+  }
+
+  .nav-btn span {
+    display: inline-block;
+    font-size: 0.72rem;
+  }
+
+  .mobile-only-nav {
+    display: inline-flex !important;
+  }
+
+  .status-text {
+    display: none;
+  }
+
+  .status-indicator {
+    padding: 5px;
+    gap: 0;
+  }
+
+  #user-display-name {
+    display: none;
+  }
+
+  .user-btn {
+    padding: 5px 8px;
+    gap: 0;
+  }
+
+  /* Full-height Mobile View Architecture */
+  .main-content {
+    display: flex;
+    flex-direction: column;
+    height: calc(100vh - 52px);
+    height: calc(100dvh - 52px);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .sidebar-panel {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    padding: 16px 14px 28px;
     border-right: none;
-    border-bottom: 1px solid var(--line);
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    display: block;
+  }
+
+  .map-container {
+    flex: 1;
+    width: 100%;
+    height: 100%;
+    display: none;
+    position: relative;
+  }
+
+  /* When Map is selected on mobile */
+  .main-content.mobile-map-active .sidebar-panel {
+    display: none;
+  }
+
+  .main-content.mobile-map-active .map-container {
+    display: block;
+  }
+
+  .mobile-only {
+    display: inline-flex !important;
+  }
+
+  .mobile-map-jump-btn {
+    display: inline-flex;
+  }
+
+  /* Inputs & Touch Targets */
+  input, select, textarea {
+    font-size: 16px !important; /* Prevents auto-zoom on iOS Safari */
+  }
+
+  .select-wrapper select {
+    font-size: 15px;
+    padding: 12px 34px 12px 12px;
+  }
+
+  .swap-divider {
+    margin: -4px 0;
+  }
+
+  .swap-btn {
+    width: 36px;
+    height: 36px;
+  }
+
+  .preset-pills {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    padding-bottom: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .preset-pill {
+    flex-shrink: 0;
+    padding: 6px 11px;
+    font-size: 0.74rem;
+  }
+
+  /* Map Overlay adjustments on mobile */
+  .map-floating-overlay {
+    top: 10px;
+    right: 10px;
+    gap: 6px;
+  }
+
+  .legend-card {
+    display: none; /* Hide heavy legend on mobile to keep map clean */
+  }
+
+  .map-action-btn {
+    padding: 8px 12px;
+    font-size: 0.76rem;
+  }
+
+  .map-click-banner {
+    width: calc(100% - 24px);
+    max-width: 320px;
+    white-space: normal;
+    text-align: center;
+    font-size: 0.76rem;
+    padding: 7px 12px;
+    bottom: 12px;
+  }
+
+  /* Metrics row */
+  .metrics-row {
+    gap: 6px;
+  }
+
+  .metric strong {
+    font-size: 0.92rem;
+  }
+
+  /* Admin tools on mobile */
+  .form-row {
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  .data-row {
+    padding: 8px 10px;
+    font-size: 0.76rem;
+  }
+
+  /* Modals on mobile */
+  .modal-overlay {
+    padding: 14px;
+  }
+
+  .modal-card {
+    width: 100%;
+    max-width: 380px;
+    padding: 18px;
+  }
+
+  /* Toast notification on mobile */
+  .toast-wrapper {
+    left: 14px;
+    right: 14px;
+    bottom: 16px;
+    align-items: center;
+  }
+
+  .toast {
+    width: 100%;
+    max-width: 360px;
+    font-size: 0.8rem;
+  }
+}
+
+/* Small Handhelds (max-width: 480px) */
+@media (max-width: 480px) {
+  .navbar {
+    padding: 0 6px;
+  }
+
+  .brand {
+    gap: 6px;
+  }
+
+  .logo-mark {
+    width: 28px;
+    height: 28px;
+  }
+
+  .brand-text h1 {
+    font-size: 0.96rem;
+  }
+
+  .nav-btn {
+    padding: 5px 6px;
+  }
+
+  .nav-btn span {
+    font-size: 0.68rem;
+  }
+
+  .opt-toggles {
+    grid-template-columns: 1fr;
   }
 }
