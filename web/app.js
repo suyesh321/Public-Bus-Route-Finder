@@ -98,21 +98,28 @@ function updateMapTiles(theme) {
     state.map.removeLayer(tileLayer);
   }
 
-  // Always use OpenStreetMap tiles — free, no API key, no access restrictions
-  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+  // Esri ArcGIS Basemaps:
+  // - Fast global CDN, highly reliable
+  // - 100% free with NO API key required (no "API Key Required" watermarks)
+  // - NO Tile Usage Policy blocks (unlike OpenStreetMap volunteer servers)
+  const isDark = theme === "dark";
+  const tileUrl = isDark
+    ? "https://server.arcgisonline.com/ArcGIS/rest/services/Canvas/World_Dark_Gray_Base/MapServer/tile/{z}/{y}/{x}"
+    : "https://server.arcgisonline.com/ArcGIS/rest/services/World_Street_Map/MapServer/tile/{z}/{y}/{x}";
+
+  const attribution = isDark
+    ? '&copy; <a href="https://www.esri.com/">Esri</a>, DeLorme, NAVTEQ'
+    : '&copy; <a href="https://www.esri.com/">Esri</a> &mdash; Source: Esri, DeLorme, NAVTEQ, TomTom';
 
   tileLayer = L.tileLayer(tileUrl, {
     maxZoom: 19,
-    subdomains: "abc",
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    maxNativeZoom: isDark ? 16 : 19,
+    attribution: attribution
   }).addTo(state.map);
 
-  // Dark mode: invert + hue-rotate the tiles via CSS for a sleek dark map look
   const mapEl = document.getElementById("leaflet-map");
   if (mapEl) {
-    mapEl.style.filter = theme === "dark"
-      ? "invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9)"
-      : "none";
+    mapEl.style.filter = "none";
   }
 }
 
