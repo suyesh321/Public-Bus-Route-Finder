@@ -3,121 +3,167 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Kathmandu Valley Bus Finder</title>
-  <meta name="description" content="Find public bus routes across Kathmandu, Lalitpur, and Bhaktapur.">
+  <title>Kathmandu Valley Bus Finder — Public Transit Routes & Fares</title>
+  <meta name="description" content="Find the fastest and cheapest public bus journeys across Kathmandu, Lalitpur, and Bhaktapur with live Dijkstra pathfinding.">
 
+  <!-- Google Fonts: Plus Jakarta Sans & JetBrains Mono for metrics -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=Syne:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=JetBrains+Mono:wght@500;600;700&display=swap" rel="stylesheet">
 
+  <!-- Leaflet CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
   <link rel="stylesheet" href="style.css">
 </head>
 <body>
   <div class="app-layout">
+    <!-- Modern Header -->
     <header class="navbar">
       <div class="brand">
         <div class="logo-mark" aria-hidden="true">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <rect x="3" y="4" width="18" height="15" rx="2"/>
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="4" width="18" height="15" rx="3"/>
             <path d="M4 11h16"/>
-            <path d="M8 15h.01M16 15h.01"/>
+            <circle cx="8" cy="15" r="1.5" fill="currentColor"/>
+            <circle cx="16" cy="15" r="1.5" fill="currentColor"/>
             <path d="M6 19v2M18 19v2"/>
           </svg>
         </div>
         <div class="brand-text">
-          <h1>Valley Bus</h1>
-          <div class="tagline">Kathmandu · Lalitpur · Bhaktapur</div>
+          <div class="brand-title-row">
+            <h1>Valley Bus</h1>
+            <span class="valley-badge">KTM · LAL · BKT</span>
+          </div>
+          <div class="tagline">Public Transit Pathfinder</div>
         </div>
       </div>
 
-      <nav class="nav-links" aria-label="Main">
+      <!-- Navigation Tabs -->
+      <nav class="nav-links" aria-label="Main Navigation">
         <button id="nav-planner" class="nav-btn active" type="button">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/></svg>
-          <span>Find route</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="12 2 19 21 12 17 5 21 12 2"/>
+          </svg>
+          <span>Find Route</span>
         </button>
         <button id="nav-routes" class="nav-btn" type="button">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/><line x1="4" y1="22" x2="4" y2="15"/></svg>
-          <span>All lines</span>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z"/>
+            <line x1="4" y1="22" x2="4" y2="15"/>
+          </svg>
+          <span>Bus Lines</span>
         </button>
         <button id="nav-map" class="nav-btn mobile-only-nav" type="button" aria-label="Transit Map">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon><line x1="8" y1="2" x2="8" y2="18"></line><line x1="16" y1="6" x2="16" y2="22"></line></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
+            <line x1="8" y1="2" x2="8" y2="18"></line>
+            <line x1="16" y1="6" x2="16" y2="22"></line>
+          </svg>
           <span>Map</span>
         </button>
         <button id="nav-admin" class="nav-btn" type="button">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 1 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 1 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 1 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 1 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>
+            <circle cx="12" cy="12" r="3"/>
+          </svg>
           <span>Admin</span>
         </button>
       </nav>
 
+      <!-- Action Area -->
       <div class="nav-actions">
-        <div id="backend-status" class="status-indicator online" title="Backend status">
+        <div id="backend-status" class="status-indicator online" title="Transit engine status">
           <span class="status-dot"></span>
-          <span class="status-text">Online</span>
+          <span class="status-text">Client Engine</span>
         </div>
-        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle theme" aria-label="Toggle theme">
-          <svg class="moon-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
-          <svg class="sun-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
+        <button id="theme-toggle" class="icon-btn" type="button" title="Toggle dark/light theme" aria-label="Toggle theme">
+          <svg class="moon-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+          <svg class="sun-icon" width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+          </svg>
         </button>
-        <button id="auth-btn" class="user-btn" type="button">
+        <button id="auth-btn" class="user-btn" type="button" title="User account">
           <span class="user-avatar">G</span>
           <span id="user-display-name">Guest</span>
         </button>
       </div>
     </header>
 
+    <!-- Main Workspace -->
     <main class="main-content">
+      <!-- Left Sidebar Panel -->
       <aside class="sidebar-panel">
+        <!-- Trip Planner Panel -->
         <section id="panel-planner" class="panel-section active">
-          <div class="section-header">
-            <h2>Plan a trip</h2>
-            <p class="subtitle">Cheapest or shortest public bus path across the valley.</p>
+          <div class="section-hero">
+            <h2>Find Bus Journey</h2>
+            <p class="subtitle">Compute optimal multi-leg bus routes using Dijkstra's algorithm.</p>
           </div>
 
           <form id="route-form" class="route-form" onsubmit="return false;">
-            <div class="input-group">
-              <label for="from-stop-select">
-                <span class="indicator-dot from-dot"></span>
-                <span>From</span>
-              </label>
-              <div class="select-wrapper">
-                <select id="from-stop-select" required>
-                  <option value="" disabled selected>Select origin stop</option>
-                </select>
+            <!-- Connected Stops Container -->
+            <div class="stops-flow-card">
+              <!-- From Stop -->
+              <div class="stop-flow-item">
+                <div class="stop-pin-indicator from-pin">
+                  <span class="pin-circle"></span>
+                  <span class="pin-line"></span>
+                </div>
+                <div class="stop-select-box">
+                  <label for="from-stop-select">Boarding Stop (Origin)</label>
+                  <div class="select-wrapper">
+                    <select id="from-stop-select" required>
+                      <option value="" disabled selected>Choose starting bus stop...</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Swap Button -->
+              <div class="swap-action-wrap">
+                <button type="button" id="swap-stops-btn" class="swap-btn" title="Reverse origin & destination" aria-label="Swap stops">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <polyline points="7 10 12 15 17 10"></polyline>
+                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                    <polyline points="17 14 12 9 7 14"></polyline>
+                    <line x1="12" y1="9" x2="12" y2="21"></line>
+                  </svg>
+                </button>
+              </div>
+
+              <!-- To Stop -->
+              <div class="stop-flow-item">
+                <div class="stop-pin-indicator to-pin">
+                  <span class="pin-circle"></span>
+                </div>
+                <div class="stop-select-box">
+                  <label for="to-stop-select">Destination Stop</label>
+                  <div class="select-wrapper">
+                    <select id="to-stop-select" required>
+                      <option value="" disabled selected>Choose destination bus stop...</option>
+                    </select>
+                  </div>
+                </div>
               </div>
             </div>
 
-            <div class="swap-divider">
-              <button type="button" id="swap-stops-btn" class="swap-btn" title="Swap stops" aria-label="Swap stops">
-                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                  <polyline points="7 10 12 15 17 10"></polyline>
-                  <line x1="12" y1="15" x2="12" y2="3"></line>
-                  <polyline points="17 14 12 9 7 14"></polyline>
-                  <line x1="12" y1="9" x2="12" y2="21"></line>
-                </svg>
-              </button>
-            </div>
-
-            <div class="input-group">
-              <label for="to-stop-select">
-                <span class="indicator-dot to-dot"></span>
-                <span>To</span>
-              </label>
-              <div class="select-wrapper">
-                <select id="to-stop-select" required>
-                  <option value="" disabled selected>Select destination stop</option>
-                </select>
-              </div>
-            </div>
-
+            <!-- Optimization Mode Toggles -->
             <div class="optimization-options">
-              <span class="opt-title">Optimize for</span>
+              <span class="opt-title">Optimization Preference</span>
               <div class="opt-toggles">
                 <label class="opt-label">
                   <input type="radio" name="optimizeBy" value="FARE" checked>
                   <div class="opt-card">
+                    <div class="opt-icon-wrap">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <line x1="12" y1="1" x2="12" y2="23"/>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                      </svg>
+                    </div>
                     <div class="opt-text">
-                      <strong>Lowest fare</strong>
+                      <strong>Cheapest Fare</strong>
                       <span>Minimize NPR</span>
                     </div>
                   </div>
@@ -125,94 +171,149 @@
                 <label class="opt-label">
                   <input type="radio" name="optimizeBy" value="DISTANCE">
                   <div class="opt-card">
+                    <div class="opt-icon-wrap">
+                      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M13 2L3 14h9l-1 8 10-12h-9l1-8z"/>
+                      </svg>
+                    </div>
                     <div class="opt-text">
-                      <strong>Shortest</strong>
-                      <span>Minimize km</span>
+                      <strong>Shortest Path</strong>
+                      <span>Minimize distance</span>
                     </div>
                   </div>
                 </label>
               </div>
             </div>
 
+            <!-- Popular Transit Hubs Quick Presets -->
             <div class="quick-presets">
-              <span class="preset-title">Popular hubs</span>
+              <div class="preset-header">
+                <span class="preset-title">Popular Destinations</span>
+                <span class="preset-hint">Click to set</span>
+              </div>
               <div class="preset-pills">
-                <button type="button" class="preset-pill" data-stop="Ratna Park">Ratna Park</button>
-                <button type="button" class="preset-pill" data-stop="Koteshwor">Koteshwor</button>
-                <button type="button" class="preset-pill" data-stop="Kalanki">Kalanki</button>
-                <button type="button" class="preset-pill" data-stop="Lagankhel">Lagankhel</button>
-                <button type="button" class="preset-pill" data-stop="Gongabu Bus Park">Gongabu</button>
-                <button type="button" class="preset-pill" data-stop="Boudha">Boudha</button>
-                <button type="button" class="preset-pill" data-stop="Suryabinayak">Suryabinayak</button>
-                <button type="button" class="preset-pill" data-stop="Tribhuvan Airport">Airport</button>
+                <button type="button" class="preset-pill" data-stop="Ratna Park">
+                  <span class="preset-emoji">🏛️</span> Ratna Park
+                </button>
+                <button type="button" class="preset-pill" data-stop="Koteshwor">
+                  <span class="preset-emoji">🔄</span> Koteshwor
+                </button>
+                <button type="button" class="preset-pill" data-stop="Kalanki">
+                  <span class="preset-emoji">🚏</span> Kalanki
+                </button>
+                <button type="button" class="preset-pill" data-stop="Lagankhel">
+                  <span class="preset-emoji">📍</span> Lagankhel
+                </button>
+                <button type="button" class="preset-pill" data-stop="Gongabu Bus Park">
+                  <span class="preset-emoji">🚌</span> Gongabu
+                </button>
+                <button type="button" class="preset-pill" data-stop="Boudha">
+                  <span class="preset-emoji">☸️</span> Boudha
+                </button>
+                <button type="button" class="preset-pill" data-stop="Suryabinayak">
+                  <span class="preset-emoji">🚩</span> Suryabinayak
+                </button>
+                <button type="button" class="preset-pill" data-stop="Tribhuvan Airport">
+                  <span class="preset-emoji">✈️</span> Airport
+                </button>
               </div>
             </div>
 
+            <!-- Search Action Button -->
             <button type="submit" id="find-route-btn" class="primary-btn">
-              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
-              <span>Find journey</span>
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"/>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"/>
+              </svg>
+              <span>Calculate Best Route</span>
             </button>
           </form>
 
+          <!-- Journey Result Display -->
           <div id="journey-result" class="journey-result-container hidden">
-            <div class="result-header">
+            <!-- Summary Header Banner -->
+            <div class="result-summary-card">
               <div class="result-headline">
-                <h3>Recommended journey</h3>
-                <span id="route-mode-badge" class="mode-badge">Cheapest</span>
+                <div class="headline-title-wrap">
+                  <span class="result-eyebrow">Optimal Itinerary</span>
+                  <h3>Recommended Route</h3>
+                </div>
+                <span id="route-mode-badge" class="mode-badge">Cheapest Fare</span>
               </div>
-              <div class="metrics-row">
-                <div class="metric">
-                  <span>Fare</span>
-                  <strong id="metric-fare" class="fare">NPR 0</strong>
+
+              <div class="metrics-grid">
+                <div class="metric-card">
+                  <div class="metric-label">Estimated Fare</div>
+                  <div id="metric-fare" class="metric-value fare-value">NPR 0</div>
                 </div>
-                <div class="metric">
-                  <span>Distance</span>
-                  <strong id="metric-distance">0.0 km</strong>
+                <div class="metric-card">
+                  <div class="metric-label">Total Distance</div>
+                  <div id="metric-distance" class="metric-value">0.0 km</div>
                 </div>
-                <div class="metric">
-                  <span>Transfers</span>
-                  <strong id="metric-transfers">Direct</strong>
+                <div class="metric-card">
+                  <div class="metric-label">Transfers</div>
+                  <div id="metric-transfers" class="metric-value">Direct</div>
                 </div>
               </div>
+
               <button type="button" id="mobile-view-map-btn" class="mobile-map-jump-btn mobile-only" aria-label="View route on map">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
                   <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
                   <line x1="8" y1="2" x2="8" y2="18"></line>
                   <line x1="16" y1="6" x2="16" y2="22"></line>
                 </svg>
-                <span>View Route on Map</span>
+                <span>View Route on Interactive Map</span>
               </button>
             </div>
+
+            <!-- Turn by Turn Itinerary -->
             <div class="itinerary-wrap">
-              <h4>Itinerary</h4>
+              <div class="itinerary-header">
+                <h4>Step-by-Step Directions</h4>
+              </div>
               <div id="timeline-container" class="timeline-list"></div>
             </div>
           </div>
 
+          <!-- Empty State Placeholder -->
           <div id="planner-placeholder" class="placeholder-box">
-            <h3>Pick two stops</h3>
-            <p>Choose origin and destination to see fare, transfers, and the path on the map.</p>
+            <div class="placeholder-icon">
+              <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"/>
+                <polygon points="16.24 7.76 14.12 14.12 7.76 16.24 9.88 9.88 16.24 7.76"/>
+              </svg>
+            </div>
+            <h3>Ready to Explore</h3>
+            <p>Select an origin and destination stop above to compute the fastest route and cheapest transit fare.</p>
           </div>
         </section>
 
+        <!-- Bus Lines Panel -->
         <section id="panel-routes" class="panel-section hidden">
-          <div class="section-header">
-            <h2>Bus lines</h2>
-            <p class="subtitle">Sajha Yatayat and major valley operators in the network.</p>
+          <div class="section-hero">
+            <h2>Bus Lines & Routes</h2>
+            <p class="subtitle">Explore active public transit routes across the Kathmandu Valley network.</p>
           </div>
           <div id="routes-directory-list" class="routes-directory-grid"></div>
         </section>
 
+        <!-- Admin Panel -->
         <section id="panel-admin" class="panel-section hidden">
-          <div class="section-header">
-            <h2>Admin</h2>
-            <p class="subtitle">Manage stops, routes, and graph segments.</p>
+          <div class="section-hero">
+            <h2>Transit Network Admin</h2>
+            <p class="subtitle">Manage transit stops, bus lines, and graph segment connections.</p>
           </div>
 
           <div id="admin-lock-banner" class="admin-locked-box">
-            <h3>Admin sign-in required</h3>
-            <p>Log in as an administrator to edit the transit network.</p>
-            <button id="prompt-admin-login-btn" class="secondary-btn" type="button">Sign in as admin</button>
+            <div class="lock-icon-wrap">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+              </svg>
+            </div>
+            <h3>Admin Access Required</h3>
+            <p>Sign in with administrator credentials to manage bus stops, lines, and network connections.</p>
+            <button id="prompt-admin-login-btn" class="secondary-btn" type="button">Sign In as Admin</button>
           </div>
 
           <div id="admin-tools-container" class="admin-content hidden">
@@ -222,147 +323,182 @@
               <button class="admin-tab-btn" data-tab="tab-segments" type="button">Segments</button>
             </div>
 
+            <!-- Stops Tab -->
             <div id="tab-stops" class="admin-tab-pane active">
               <div class="admin-pane-header">
-                <h3>Add stop</h3>
-                <span class="hint">Click the map to fill latitude and longitude.</span>
+                <h3>Add New Bus Stop</h3>
+                <span class="hint">Click anywhere on the map to autofill coordinates.</span>
               </div>
               <form id="add-stop-form" class="compact-form">
                 <div class="form-row">
-                  <input type="text" id="new-stop-name" placeholder="Stop name" required>
-                  <input type="text" id="new-stop-area" placeholder="Area" required>
+                  <input type="text" id="new-stop-name" placeholder="Stop Name (e.g. Maitighar)" required>
+                  <input type="text" id="new-stop-area" placeholder="Area (e.g. Kathmandu)" required>
                 </div>
                 <div class="form-row">
                   <input type="number" step="0.0001" id="new-stop-lat" placeholder="Latitude" required>
                   <input type="number" step="0.0001" id="new-stop-lon" placeholder="Longitude" required>
                 </div>
-                <button type="submit" class="primary-btn">Save stop</button>
+                <button type="submit" class="primary-btn">Save Bus Stop</button>
               </form>
+
               <div class="existing-list-header">
-                <h4>Stops (<span id="stops-count">0</span>)</h4>
-                <input type="text" id="stop-search-filter" class="search-mini" placeholder="Filter…">
+                <h4>Existing Stops (<span id="stops-count">0</span>)</h4>
+                <input type="text" id="stop-search-filter" class="search-mini" placeholder="Filter stops...">
               </div>
               <div id="admin-stops-table" class="admin-data-list"></div>
             </div>
 
+            <!-- Routes Tab -->
             <div id="tab-routes" class="admin-tab-pane hidden">
               <div class="admin-pane-header">
-                <h3>Create route</h3>
+                <h3>Create New Bus Route</h3>
               </div>
               <form id="add-route-form" class="compact-form">
                 <div class="form-row">
-                  <input type="text" id="new-route-name" placeholder="Route name" required>
+                  <input type="text" id="new-route-name" placeholder="Route Name (e.g. Ring Road Clockwise)" required>
                 </div>
                 <div class="form-row">
-                  <input type="text" id="new-route-operator" placeholder="Operator" required>
-                  <input type="number" step="0.5" id="new-route-fare" placeholder="NPR/km" value="4.5" required>
+                  <input type="text" id="new-route-operator" placeholder="Operator (e.g. Sajha Yatayat)" required>
+                  <input type="number" step="0.5" id="new-route-fare" placeholder="Fare Rate (NPR/km)" value="4.5" required>
                 </div>
-                <button type="submit" class="primary-btn">Create route</button>
+                <button type="submit" class="primary-btn">Create Route</button>
               </form>
+
               <div class="existing-list-header">
-                <h4>Routes (<span id="routes-count">0</span>)</h4>
+                <h4>Configured Routes (<span id="routes-count">0</span>)</h4>
               </div>
               <div id="admin-routes-table" class="admin-data-list"></div>
             </div>
 
+            <!-- Segments Tab -->
             <div id="tab-segments" class="admin-tab-pane hidden">
               <div class="admin-pane-header">
-                <h3>Add segment</h3>
-                <p class="hint">Connect two stops on a route.</p>
+                <h3>Connect Route Segment</h3>
+                <p class="hint">Link two stops with distance and fare data.</p>
               </div>
               <form id="add-segment-form" class="compact-form">
                 <div class="form-row">
                   <select id="segment-route-select" required>
-                    <option value="" disabled selected>Select route</option>
+                    <option value="" disabled selected>Select Bus Route</option>
                   </select>
                 </div>
                 <div class="form-row">
                   <select id="segment-from-select" required>
-                    <option value="" disabled selected>From stop</option>
+                    <option value="" disabled selected>From Stop</option>
                   </select>
                   <select id="segment-to-select" required>
-                    <option value="" disabled selected>To stop</option>
+                    <option value="" disabled selected>To Stop</option>
                   </select>
                 </div>
                 <div class="form-row">
-                  <input type="number" step="0.1" id="segment-distance" placeholder="km" required>
-                  <input type="number" step="1" id="segment-fare" placeholder="NPR" required>
-                  <input type="number" step="1" id="segment-order" placeholder="Order" value="1" required>
+                  <input type="number" step="0.1" id="segment-distance" placeholder="Distance (km)" required>
+                  <input type="number" step="1" id="segment-fare" placeholder="Fare (NPR)" required>
+                  <input type="number" step="1" id="segment-order" placeholder="Sequence Order" value="1" required>
                 </div>
-                <button type="submit" class="primary-btn">Add segment</button>
+                <button type="submit" class="primary-btn">Connect Segment</button>
               </form>
             </div>
 
+            <!-- Reset Network Action -->
             <div class="admin-footer-actions">
-              <button id="reset-data-btn" class="danger-outline-btn" type="button">Reset to valley defaults</button>
+              <button id="reset-data-btn" class="danger-outline-btn" type="button">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/>
+                  <path d="M21 3v5h-5"/>
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/>
+                  <path d="M8 16H3v5"/>
+                </svg>
+                <span>Reset to Kathmandu Defaults</span>
+              </button>
             </div>
           </div>
         </section>
       </aside>
 
+      <!-- Right Interactive Map View -->
       <div class="map-container">
         <div id="leaflet-map"></div>
+
+        <!-- Floating Map Overlay Controls -->
         <div class="map-floating-overlay">
           <div class="legend-card">
-            <span class="legend-title">Operators</span>
+            <span class="legend-title">Major Operators</span>
             <div class="legend-items">
-              <span class="legend-pill" style="--c:#0f6b4c"><span class="dot"></span> Sajha</span>
-              <span class="legend-pill" style="--c:#c45c26"><span class="dot"></span> Nepal Yatayat</span>
-              <span class="legend-pill" style="--c:#1e5a8a"><span class="dot"></span> City Bus</span>
-              <span class="legend-pill" style="--c:#8a5a12"><span class="dot"></span> Boudha Sewa</span>
-              <span class="legend-pill" style="--c:#6b3d5c"><span class="dot"></span> Bhaktapur</span>
+              <span class="legend-pill" style="--c:#10b981"><span class="dot"></span> Sajha</span>
+              <span class="legend-pill" style="--c:#f97316"><span class="dot"></span> Nepal Yatayat</span>
+              <span class="legend-pill" style="--c:#3b82f6"><span class="dot"></span> City Bus</span>
+              <span class="legend-pill" style="--c:#eab308"><span class="dot"></span> Boudha Sewa</span>
+              <span class="legend-pill" style="--c:#ec4899"><span class="dot"></span> Bhaktapur</span>
             </div>
           </div>
-          <button id="recenter-map-btn" class="map-action-btn" type="button" title="Recenter map">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/></svg>
-            <span>Center valley</span>
+
+          <button id="recenter-map-btn" class="map-action-btn" type="button" title="Center map on Kathmandu Valley">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <span>Center Valley</span>
           </button>
+
           <button id="mobile-back-to-panel-btn" class="map-action-btn mobile-only" type="button" title="Back to trip planner">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 18 9 12 15 6"></polyline></svg>
-            <span>Trip steps</span>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <polyline points="15 18 9 12 15 6"></polyline>
+            </svg>
+            <span>Trip Steps</span>
           </button>
         </div>
+
         <div id="map-click-indicator" class="map-click-banner hidden">
-          Click a stop to set origin or destination
+          Click any stop on the map to set Origin or Destination
         </div>
       </div>
     </main>
   </div>
 
+  <!-- Sign In Modal -->
   <div id="auth-modal" class="modal-overlay hidden">
     <div class="modal-card">
       <div class="modal-header">
         <div class="modal-title-group">
-          <h3>Sign in</h3>
-          <p>Admin access or passenger session</p>
+          <h3>Transit Authentication</h3>
+          <p>Sign in for administrative permissions or test accounts</p>
         </div>
-        <button id="close-modal-btn" class="close-btn" type="button" aria-label="Close">&times;</button>
+        <button id="close-modal-btn" class="close-btn" type="button" aria-label="Close dialog">&times;</button>
       </div>
+
       <form id="login-form" class="modal-form">
         <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" value="admin@ktmbus.gov.np" required>
+          <label for="login-email">Email Address</label>
+          <input type="email" id="login-email" value="admin@ktmbus.gov.np" placeholder="user@example.com" required>
         </div>
         <div class="form-group">
           <label for="login-password">Password</label>
-          <input type="password" id="login-password" value="admin123" required>
+          <input type="password" id="login-password" value="admin123" placeholder="••••••••" required>
         </div>
+
         <div class="auth-demo-credentials">
-          <span>Demo accounts</span>
+          <span>Quick Demo Logins</span>
           <div class="demo-chips">
-            <button type="button" class="demo-chip" onclick="fillLogin('admin@ktmbus.gov.np','admin123')">Admin</button>
-            <button type="button" class="demo-chip" onclick="fillLogin('passenger@example.com','passenger123')">Passenger</button>
+            <button type="button" class="demo-chip" onclick="fillLogin('admin@ktmbus.gov.np','admin123')">
+              <span class="chip-role admin-role">Admin</span> admin@ktmbus.gov.np
+            </button>
+            <button type="button" class="demo-chip" onclick="fillLogin('passenger@example.com','passenger123')">
+              <span class="chip-role">User</span> passenger@example.com
+            </button>
           </div>
         </div>
+
         <div id="login-error-msg" class="error-banner hidden"></div>
+
         <div class="modal-actions">
-          <button type="button" id="continue-guest-btn" class="secondary-btn">Continue as guest</button>
-          <button type="submit" class="primary-btn" style="width:auto;padding:10px 16px;">Sign in</button>
+          <button type="button" id="continue-guest-btn" class="secondary-btn">Continue as Guest</button>
+          <button type="submit" class="primary-btn" style="width:auto;padding:11px 20px;">Sign In</button>
         </div>
       </form>
     </div>
   </div>
 
+  <!-- Toast Container -->
   <div id="toast-container" class="toast-wrapper"></div>
 
   <!-- Leaflet JS -->

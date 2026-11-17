@@ -91,21 +91,22 @@ function updateMapTiles(theme) {
   if (tileLayer) {
     state.map.removeLayer(tileLayer);
   }
-  // Free OpenStreetMap tiles â€” no API key required.
-  // Dark theme uses the same tiles with a CSS invert filter applied to the map container.
-  const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
+
+  // High-performance, clean CartoDB Vector-raster tiles
+  // Light: CartoDB Voyager, Dark: CartoDB Dark Matter
+  const tileUrl = theme === "dark"
+    ? "https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+    : "https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png";
 
   tileLayer = L.tileLayer(tileUrl, {
     maxZoom: 19,
-    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    subdomains: "abcd",
+    attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
   }).addTo(state.map);
 
-  // Apply CSS filter for dark mode so the map blends with the dark UI
   const mapEl = document.getElementById("leaflet-map");
   if (mapEl) {
-    mapEl.style.filter = theme === "dark"
-      ? "invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)"
-      : "none";
+    mapEl.style.filter = "none";
   }
 }
 
@@ -214,7 +215,7 @@ function renderStopMarkers() {
   state.stops.forEach(stop => {
     const icon = L.divIcon({
       className: "custom-bus-stop-icon",
-      html: `<span>•</span>`,
+      html: `<div class="transit-stop-pin" title="${stop.name}"></div>`,
       iconSize: [18, 18],
       iconAnchor: [9, 9]
     });
@@ -222,12 +223,12 @@ function renderStopMarkers() {
     const marker = L.marker([stop.latitude, stop.longitude], { icon })
       .addTo(state.map)
       .bindPopup(`
-        <div style="font-family: 'IBM Plex Sans', sans-serif; padding: 2px;">
-          <h4 style="margin: 0 0 4px; font-size: 0.95rem; color: #0f6b4c;">${stop.name}</h4>
-          <p style="margin: 0 0 8px; font-size: 0.78rem; color: #4a5852;">${stop.area}</p>
-          <div style="display: flex; gap: 6px;">
-            <button onclick="setStopChoice('from', ${stop.stopId})" style="padding: 5px 9px; font-size: 0.72rem; background: #0f6b4c; color: white; border: none; border-radius: 4px; cursor: pointer;">Origin</button>
-            <button onclick="setStopChoice('to', ${stop.stopId})" style="padding: 5px 9px; font-size: 0.72rem; background: #c45c26; color: white; border: none; border-radius: 4px; cursor: pointer;">Destination</button>
+        <div class="stop-popup-card">
+          <h4>${stop.name}</h4>
+          <p>${stop.area}</p>
+          <div class="popup-btn-row">
+            <button class="popup-btn origin-btn" onclick="setStopChoice('from', ${stop.stopId})">Set as Origin</button>
+            <button class="popup-btn dest-btn" onclick="setStopChoice('to', ${stop.stopId})">Set as Destination</button>
           </div>
         </div>
       `);
@@ -247,11 +248,11 @@ window.setStopChoice = function(type, stopId) {
 };
 
 const OPERATOR_COLORS = {
-  "Sajha Yatayat": "#0f6b4c",
-  "Nepal Yatayat": "#c45c26",
-  "City Bus Service": "#1e5a8a",
-  "Boudha Sewa Yatayat": "#8a5a12",
-  "Bhaktapur Yatayat": "#6b3d5c"
+  "Sajha Yatayat": "#10b981",
+  "Nepal Yatayat": "#f97316",
+  "City Bus Service": "#3b82f6",
+  "Boudha Sewa Yatayat": "#eab308",
+  "Bhaktapur Yatayat": "#ec4899"
 };
 
 function renderRoutePolylines() {
@@ -548,6 +549,8 @@ function highlightJourneyOnMap(result) {
     const el = m.getElement();
     if (el) {
       el.classList.remove("active-from", "active-to");
+      const pin = el.querySelector(".transit-stop-pin");
+      if (pin) pin.classList.remove("active-from", "active-to");
     }
   });
 
@@ -558,24 +561,26 @@ function highlightJourneyOnMap(result) {
     if (marker) {
       const el = marker.getElement();
       if (el) {
-        if (i === 0) el.classList.add("active-from");
-        if (i === result.stopPath.length - 1) el.classList.add("active-to");
+        const pin = el.querySelector(".transit-stop-pin") || el;
+        if (i === 0) pin.classList.add("active-from");
+        if (i === result.stopPath.length - 1) pin.classList.add("active-to");
       }
     }
   });
 
   if (latlngs.length > 0) {
+    // Glowing buffer polyline
     L.polyline(latlngs, {
-      color: "#0f6b4c",
-      weight: 7,
+      color: "#10b981",
+      weight: 10,
       opacity: 0.35
     }).addTo(state.activeJourneyLayer);
 
+    // Primary route polyline
     const pathLine = L.polyline(latlngs, {
-      color: "#0a4f38",
-      weight: 3.5,
-      dashArray: "2, 8",
-      opacity: 0.95
+      color: "#059669",
+      weight: 4.5,
+      opacity: 1
     }).addTo(state.activeJourneyLayer);
 
     state.map.fitBounds(pathLine.getBounds(), { padding: [60, 60] });
