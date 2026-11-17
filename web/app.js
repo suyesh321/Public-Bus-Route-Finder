@@ -1,69 +1,12 @@
 /**
- * Kathmandu Transit — Public Bus Route Finder
- * Modern Web Frontend & Client-side Transit Engine
+ * Kathmandu Valley Bus Finder — frontend
+ * Canonical network data: web/seed-data.json (also loaded by the Java backend)
  */
-
-// =============================================================================
-// Canonical Seed Dataset (Kathmandu Valley)
-// Single Source of Truth loaded from web/seed-data.json
-// Note: Hand-maintained fallback constants below match web/seed-data.json
-// =============================================================================
-const DEFAULT_STOPS = [
-  { stopId: 1, name: "Ratna Park", area: "Kathmandu", latitude: 27.7040, longitude: 85.3140 },
-  { stopId: 2, name: "Sundhara", area: "Kathmandu", latitude: 27.6988, longitude: 85.3122 },
-  { stopId: 3, name: "New Baneshwor", area: "Baneshwor", latitude: 27.6928, longitude: 85.3405 },
-  { stopId: 4, name: "Koteshwor", area: "Koteshwor", latitude: 27.6776, longitude: 85.3486 },
-  { stopId: 5, name: "Tribhuvan Airport", area: "Sinamangal", latitude: 27.6966, longitude: 85.3591 },
-  { stopId: 6, name: "Kalanki", area: "Kalanki", latitude: 27.6939, longitude: 85.2809 },
-  { stopId: 7, name: "Balkhu", area: "Kirtipur Road", latitude: 27.6858, longitude: 85.2966 },
-  { stopId: 8, name: "Kalimati", area: "Kalimati", latitude: 27.6971, longitude: 85.3018 },
-  { stopId: 9, name: "Balaju", area: "Balaju", latitude: 27.7280, longitude: 85.3050 },
-  { stopId: 10, name: "Gongabu Bus Park", area: "Gongabu", latitude: 27.7326, longitude: 85.3193 },
-  { stopId: 11, name: "Swayambhu", area: "Swayambhu", latitude: 27.7150, longitude: 85.2903 },
-  { stopId: 12, name: "Lagankhel", area: "Lalitpur", latitude: 27.6667, longitude: 85.3235 },
-  { stopId: 13, name: "Patan Dhoka", area: "Lalitpur", latitude: 27.6792, longitude: 85.3200 },
-  { stopId: 14, name: "Jawalakhel", area: "Lalitpur", latitude: 27.6742, longitude: 85.3126 },
-  { stopId: 15, name: "Bhaktapur Durbar Square", area: "Bhaktapur", latitude: 27.6710, longitude: 85.4285 },
-  { stopId: 16, name: "Suryabinayak", area: "Bhaktapur", latitude: 27.6656, longitude: 85.4436 },
-  { stopId: 17, name: "Chabahil", area: "Chabahil", latitude: 27.7175, longitude: 85.3459 },
-  { stopId: 18, name: "Boudha", area: "Boudha", latitude: 27.7215, longitude: 85.3620 }
-];
-
-const DEFAULT_ROUTES = [
-  { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", operatorName: "Sajha Yatayat", farePerKm: 4.5, color: "#10b981" },
-  { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", operatorName: "Nepal Yatayat", farePerKm: 4.0, color: "#f97316" },
-  { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", operatorName: "City Bus Service", farePerKm: 4.5, color: "#0ea5e9" },
-  { routeId: 4, routeName: "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", operatorName: "Sajha Yatayat", farePerKm: 4.0, color: "#10b981" },
-  { routeId: 5, routeName: "Route 5: Koteshwor - Chabahil - Boudha", operatorName: "Boudha Sewa Yatayat", farePerKm: 5.0, color: "#f59e0b" },
-  { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", operatorName: "Bhaktapur Yatayat", farePerKm: 5.5, color: "#a855f7" }
-];
-
-const DEFAULT_SEGMENTS = [
-  { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 1, toStopId: 2, distanceKm: 1.2, fareNpr: 15.0, sequenceOrder: 1 },
-  { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 2, toStopId: 3, distanceKm: 3.0, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 3, toStopId: 5, distanceKm: 2.5, fareNpr: 15.0, sequenceOrder: 3 },
-  { routeId: 1, routeName: "Route 1: Ratnapark - Airport - Koteshwor", fromStopId: 5, toStopId: 4, distanceKm: 2.0, fareNpr: 15.0, sequenceOrder: 4 },
-  { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 1, toStopId: 8, distanceKm: 2.8, fareNpr: 15.0, sequenceOrder: 1 },
-  { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 8, toStopId: 6, distanceKm: 2.6, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 2, routeName: "Route 2: Ratnapark - Kalanki - Balkhu", fromStopId: 6, toStopId: 7, distanceKm: 1.8, fareNpr: 15.0, sequenceOrder: 3 },
-  { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 10, toStopId: 9, distanceKm: 1.5, fareNpr: 15.0, sequenceOrder: 1 },
-  { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 9, toStopId: 11, distanceKm: 2.2, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 3, routeName: "Route 3: Gongabu - Balaju - Swayambhu - Kalimati", fromStopId: 11, toStopId: 8, distanceKm: 2.4, fareNpr: 15.0, sequenceOrder: 3 },
-  { routeId: 4, routeName: "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", fromStopId: 12, toStopId: 13, distanceKm: 1.6, fareNpr: 15.0, sequenceOrder: 1 },
-  { routeId: 4, routeName: "Route 4: Lagankhel - Patan Dhoka - Jawalakhel", fromStopId: 13, toStopId: 14, distanceKm: 1.4, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 5, routeName: "Route 5: Koteshwor - Chabahil - Boudha", fromStopId: 4, toStopId: 17, distanceKm: 3.2, fareNpr: 20.0, sequenceOrder: 1 },
-  { routeId: 5, routeName: "Route 5: Koteshwor - Chabahil - Boudha", fromStopId: 17, toStopId: 18, distanceKm: 1.8, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 1, toStopId: 3, distanceKm: 3.5, fareNpr: 20.0, sequenceOrder: 1 },
-  { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 3, toStopId: 4, distanceKm: 1.6, fareNpr: 15.0, sequenceOrder: 2 },
-  { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 4, toStopId: 16, distanceKm: 9.0, fareNpr: 35.0, sequenceOrder: 3 },
-  { routeId: 6, routeName: "Route 6: Ratnapark - Baneshwor - Koteshwor - Bhaktapur", fromStopId: 16, toStopId: 15, distanceKm: 2.0, fareNpr: 15.0, sequenceOrder: 4 }
-];
-
 // =============================================================================
 // App State & Server Auth Session
 // =============================================================================
 const state = {
-  currentUser: { fullName: "Guest / Passenger", role: "PASSENGER", email: "" },
+  currentUser: { fullName: "Guest", role: "PASSENGER", email: "" },
   authToken: localStorage.getItem("ktm_auth_token") || null,
   stops: [],
   routes: [],
@@ -96,7 +39,7 @@ document.addEventListener("DOMContentLoaded", async () => {
 
 // Theme Management
 function initTheme() {
-  const savedTheme = localStorage.getItem("ktm_theme") || "dark";
+  const savedTheme = localStorage.getItem("ktm_theme") || "light";
   document.documentElement.setAttribute("data-theme", savedTheme);
   updateMapTiles(savedTheme);
 
@@ -115,7 +58,7 @@ function initMap() {
   const valleyCenter = [27.7000, 85.3333];
   state.map = L.map("leaflet-map", {
     center: valleyCenter,
-    zoom: 13,
+    zoom: 12,
     zoomControl: false
   });
 
@@ -148,7 +91,7 @@ function updateMapTiles(theme) {
   if (tileLayer) {
     state.map.removeLayer(tileLayer);
   }
-  // Free OpenStreetMap tiles — no API key required.
+  // Free OpenStreetMap tiles â€” no API key required.
   // Dark theme uses the same tiles with a CSS invert filter applied to the map container.
   const tileUrl = "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 
@@ -220,18 +163,18 @@ async function loadCanonicalSeedData() {
     const res = await fetch("seed-data.json");
     if (res.ok) {
       const seed = await res.json();
-      state.stops = seed.stops || DEFAULT_STOPS;
-      state.routes = seed.routes || DEFAULT_ROUTES;
-      state.segments = seed.segments || DEFAULT_SEGMENTS;
+      state.stops = seed.stops || [];
+      state.routes = seed.routes || [];
+      state.segments = seed.segments || [];
       return;
     }
   } catch (e) {
-    console.warn("Could not fetch seed-data.json, using bundled constants", e);
+    console.warn("Could not fetch seed-data.json", e);
   }
 
-  state.stops = DEFAULT_STOPS;
-  state.routes = DEFAULT_ROUTES;
-  state.segments = DEFAULT_SEGMENTS;
+  state.stops = [];
+  state.routes = [];
+  state.segments = [];
 }
 
 // =============================================================================
@@ -271,20 +214,20 @@ function renderStopMarkers() {
   state.stops.forEach(stop => {
     const icon = L.divIcon({
       className: "custom-bus-stop-icon",
-      html: `<span>🚏</span>`,
-      iconSize: [26, 26],
-      iconAnchor: [13, 13]
+      html: `<span>•</span>`,
+      iconSize: [18, 18],
+      iconAnchor: [9, 9]
     });
 
     const marker = L.marker([stop.latitude, stop.longitude], { icon })
       .addTo(state.map)
       .bindPopup(`
-        <div style="font-family: var(--font-body); padding: 4px;">
-          <h4 style="margin: 0 0 4px; font-size: 1rem; color: #10b981;">${stop.name}</h4>
-          <p style="margin: 0 0 8px; font-size: 0.8rem; color: #64748b;">Area: <strong>${stop.area}</strong></p>
+        <div style="font-family: 'IBM Plex Sans', sans-serif; padding: 2px;">
+          <h4 style="margin: 0 0 4px; font-size: 0.95rem; color: #0f6b4c;">${stop.name}</h4>
+          <p style="margin: 0 0 8px; font-size: 0.78rem; color: #4a5852;">${stop.area}</p>
           <div style="display: flex; gap: 6px;">
-            <button onclick="setStopChoice('from', ${stop.stopId})" style="padding: 4px 8px; font-size: 0.75rem; background: #10b981; color: white; border: none; border-radius: 4px; cursor: pointer;">Set Origin</button>
-            <button onclick="setStopChoice('to', ${stop.stopId})" style="padding: 4px 8px; font-size: 0.75rem; background: #f97316; color: white; border: none; border-radius: 4px; cursor: pointer;">Set Destination</button>
+            <button onclick="setStopChoice('from', ${stop.stopId})" style="padding: 5px 9px; font-size: 0.72rem; background: #0f6b4c; color: white; border: none; border-radius: 4px; cursor: pointer;">Origin</button>
+            <button onclick="setStopChoice('to', ${stop.stopId})" style="padding: 5px 9px; font-size: 0.72rem; background: #c45c26; color: white; border: none; border-radius: 4px; cursor: pointer;">Destination</button>
           </div>
         </div>
       `);
@@ -304,11 +247,11 @@ window.setStopChoice = function(type, stopId) {
 };
 
 const OPERATOR_COLORS = {
-  "Sajha Yatayat": "#10b981",
-  "Nepal Yatayat": "#f97316",
-  "City Bus Service": "#0ea5e9",
-  "Boudha Sewa Yatayat": "#f59e0b",
-  "Bhaktapur Yatayat": "#a855f7"
+  "Sajha Yatayat": "#0f6b4c",
+  "Nepal Yatayat": "#c45c26",
+  "City Bus Service": "#1e5a8a",
+  "Boudha Sewa Yatayat": "#8a5a12",
+  "Bhaktapur Yatayat": "#6b3d5c"
 };
 
 function renderRoutePolylines() {
@@ -320,7 +263,7 @@ function renderRoutePolylines() {
     const route = state.routes.find(r => r.routeId === seg.routeId);
 
     if (fromStop && toStop) {
-      const color = route ? (OPERATOR_COLORS[route.operatorName] || "#38bdf8") : "#38bdf8";
+      const color = route ? (OPERATOR_COLORS[route.operatorName] || "#4a5852") : "#4a5852";
       const line = L.polyline([
         [fromStop.latitude, fromStop.longitude],
         [toStop.latitude, toStop.longitude]
@@ -342,7 +285,7 @@ function renderRoutesDirectory() {
   if (!container) return;
 
   container.innerHTML = state.routes.map(r => {
-    const color = OPERATOR_COLORS[r.operatorName] || "#38bdf8";
+    const color = OPERATOR_COLORS[r.operatorName] || "#4a5852";
     const routeSegments = state.segments.filter(s => s.routeId === r.routeId);
     return `
       <div class="route-directory-card" onclick="highlightRoute(${r.routeId})">
@@ -563,7 +506,7 @@ function displayJourneyResult(result, optimizeBy) {
     let nodeIcon = `${index + 1}`;
     if (isOrigin) { nodeClass += " origin-node"; nodeIcon = "A"; }
     else if (isDest) { nodeClass += " destination-node"; nodeIcon = "B"; }
-    else if (isTransfer) { nodeClass += " transfer-node"; nodeIcon = "⇄"; }
+    else if (isTransfer) { nodeClass += " transfer-node"; nodeIcon = "T"; }
 
     const leg = segments[index];
     const legHtml = leg ? `
@@ -588,7 +531,7 @@ function displayJourneyResult(result, optimizeBy) {
         <div class="timeline-content">
           <div class="timeline-title">${stop.name}</div>
           <div class="timeline-area">${stop.area}</div>
-          ${isTransfer ? '<div style="color: #a855f7; font-size: 0.75rem; font-weight: 700; margin-top: 4px;">⚠️ Transfer Bus Here</div>' : ''}
+          ${isTransfer ? '<div class="transfer-note">Transfer here</div>' : ''}
           ${legHtml}
         </div>
       </div>
@@ -623,15 +566,15 @@ function highlightJourneyOnMap(result) {
 
   if (latlngs.length > 0) {
     L.polyline(latlngs, {
-      color: "#10b981",
-      weight: 8,
-      opacity: 0.4
+      color: "#0f6b4c",
+      weight: 7,
+      opacity: 0.35
     }).addTo(state.activeJourneyLayer);
 
     const pathLine = L.polyline(latlngs, {
-      color: "#ffffff",
-      weight: 4,
-      dashArray: "6, 8",
+      color: "#0a4f38",
+      weight: 3.5,
+      dashArray: "2, 8",
       opacity: 0.95
     }).addTo(state.activeJourneyLayer);
 
@@ -658,7 +601,7 @@ function renderAdminTables() {
           <strong>${s.name}</strong> (${s.area})
           <div style="font-size: 0.72rem; color: var(--text-muted);">${s.latitude.toFixed(4)}, ${s.longitude.toFixed(4)}</div>
         </div>
-        <button class="row-delete-btn" onclick="deleteStop(${s.stopId})" title="Delete Stop">🗑️</button>
+        <button class="row-delete-btn" onclick="deleteStop(${s.stopId})" title="Delete Stop">Delete</button>
       </div>
     `).join("");
   }
@@ -668,9 +611,9 @@ function renderAdminTables() {
       <div class="data-row">
         <div>
           <strong>${r.routeName}</strong>
-          <div style="font-size: 0.72rem; color: var(--text-muted);">${r.operatorName} • NPR ${r.farePerKm}/km</div>
+          <div style="font-size: 0.72rem; color: var(--text-muted);">${r.operatorName} â€¢ NPR ${r.farePerKm}/km</div>
         </div>
-        <button class="row-delete-btn" onclick="deleteRoute(${r.routeId})" title="Delete Route">🗑️</button>
+        <button class="row-delete-btn" onclick="deleteRoute(${r.routeId})" title="Delete Route">Delete</button>
       </div>
     `).join("");
   }
@@ -1020,7 +963,7 @@ function setupEventListeners() {
   document.getElementById("close-modal-btn").addEventListener("click", () => modal.classList.add("hidden"));
   document.getElementById("prompt-admin-login-btn").addEventListener("click", () => modal.classList.remove("hidden"));
   document.getElementById("continue-guest-btn").addEventListener("click", () => {
-    setUser({ fullName: "Guest / Passenger", role: "PASSENGER", email: "" });
+    setUser({ fullName: "Guest", role: "PASSENGER", email: "" });
     modal.classList.add("hidden");
   });
 
@@ -1079,7 +1022,10 @@ function setUser(user) {
     state.authToken = null;
     localStorage.removeItem("ktm_auth_token");
   }
-  document.getElementById("user-display-name").textContent = `${user.fullName} (${user.role})`;
+  const shortName = user.fullName.split(" ")[0] || "Guest";
+  document.getElementById("user-display-name").textContent = shortName;
+  const avatar = document.querySelector(".user-avatar");
+  if (avatar) avatar.textContent = (shortName[0] || "G").toUpperCase();
 
   const lockBanner = document.getElementById("admin-lock-banner");
   const adminTools = document.getElementById("admin-tools-container");
@@ -1103,7 +1049,7 @@ function showToast(msg, type = "success") {
   const container = document.getElementById("toast-container");
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>🚌</span> <span>${msg}</span>`;
+  toast.innerHTML = `<span>${msg}</span>`;
   container.appendChild(toast);
   setTimeout(() => {
     toast.style.opacity = "0";
