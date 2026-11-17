@@ -53,6 +53,10 @@
           </svg>
           <span>Bus Lines</span>
         </button>
+        <button id="nav-ai" class="nav-btn ai-nav-btn" type="button">
+          <span class="ai-sparkle">✨</span>
+          <span>Valley AI</span>
+        </button>
         <button id="nav-map" class="nav-btn mobile-only-nav" type="button" aria-label="Transit Map">
           <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
             <polygon points="1 6 1 22 8 18 16 22 23 18 23 2 16 6 8 2 1 6"></polygon>
@@ -100,6 +104,21 @@
           <div class="section-hero">
             <h2>Find Bus Journey</h2>
             <p class="subtitle">Compute optimal multi-leg bus routes using Dijkstra's algorithm.</p>
+          </div>
+
+          <!-- AI Natural Language Route Planner Input -->
+          <div class="ai-quick-plan-card">
+            <div class="ai-quick-header">
+              <span class="ai-chip">✨ AI Natural Language Planner</span>
+              <span class="ai-quick-tag">Gemini 3.5</span>
+            </div>
+            <div class="ai-input-row">
+              <input type="text" id="ai-smart-route-input" placeholder="e.g. Fastest bus from Kalanki to Boudhanath..." autocomplete="off">
+              <button type="button" id="ai-smart-route-btn" class="ai-smart-btn" title="Plan with AI">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 18 15 12 9 6"></polyline></svg>
+              </button>
+            </div>
+            <div id="ai-smart-status" class="ai-smart-status hidden"></div>
           </div>
 
           <form id="route-form" class="route-form" onsubmit="return false;">
@@ -266,6 +285,22 @@
               </button>
             </div>
 
+            <!-- AI Route Insights & Rush Hour Advisory -->
+            <div class="ai-route-insights-card">
+              <button type="button" id="ai-insights-trigger-btn" class="ai-insights-btn">
+                <span class="ai-sparkle">✨</span>
+                <span>Get AI Route Insights & Rush-Hour Tips</span>
+                <span class="ai-chevron">↓</span>
+              </button>
+              <div id="ai-insights-panel" class="ai-insights-panel hidden">
+                <div id="ai-insights-loader" class="ai-loading-indicator hidden">
+                  <span class="ai-pulse-dot"></span>
+                  <span>Consulting Valley AI on Kathmandu transit conditions...</span>
+                </div>
+                <div id="ai-insights-content" class="ai-insights-body"></div>
+              </div>
+            </div>
+
             <!-- Turn by Turn Itinerary -->
             <div class="itinerary-wrap">
               <div class="itinerary-header">
@@ -285,6 +320,50 @@
             </div>
             <h3>Ready to Explore</h3>
             <p>Select an origin and destination stop above to compute the fastest route and cheapest transit fare.</p>
+          </div>
+        </section>
+
+        <!-- Valley AI Copilot Panel -->
+        <section id="panel-ai" class="panel-section hidden">
+          <div class="section-hero">
+            <div class="ai-hero-badge">✨ Powered by Google Gemini 3.5</div>
+            <h2>Valley Transit AI</h2>
+            <p class="subtitle">Ask any question about Kathmandu buses, fares, schedules, and interchanges.</p>
+          </div>
+
+          <div class="ai-chat-card">
+            <!-- Suggested Prompts -->
+            <div class="ai-suggested-prompts">
+              <span class="preset-title">Common Transit Questions</span>
+              <div class="ai-prompt-chips">
+                <button type="button" class="ai-prompt-chip" data-prompt="How do I get from Tribhuvan Airport to Thamel by public bus?">✈️ Airport to Thamel</button>
+                <button type="button" class="ai-prompt-chip" data-prompt="Which Sajha Yatayat bus routes run on Ring Road?">🚌 Ring Road Sajha</button>
+                <button type="button" class="ai-prompt-chip" data-prompt="What are public bus fares and student discounts in Kathmandu Valley?">🎟️ Fares & Discounts</button>
+                <button type="button" class="ai-prompt-chip" data-prompt="How do I get from Kalanki to Boudhanath cheapest way?">📍 Kalanki to Boudha</button>
+                <button type="button" class="ai-prompt-chip" data-prompt="Are there night buses in Kathmandu after 8 PM?">🌙 Night Buses</button>
+              </div>
+            </div>
+
+            <!-- Messages Stream -->
+            <div id="ai-chat-messages" class="ai-chat-messages">
+              <div class="ai-message assistant-message">
+                <div class="ai-avatar">✨</div>
+                <div class="ai-bubble">
+                  Namaste! I am your <strong>Valley Bus AI Copilot</strong>. Ask me anything about bus routes, fares, traffic conditions, or transfers in Kathmandu, Lalitpur, and Bhaktapur.
+                </div>
+              </div>
+            </div>
+
+            <!-- Chat Input Bar -->
+            <form id="ai-chat-form" class="ai-chat-input-bar">
+              <input type="text" id="ai-chat-input" placeholder="Ask about routes, fares, buses..." autocomplete="off" required>
+              <button type="submit" id="ai-chat-send-btn" class="ai-send-btn" title="Send message">
+                <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                  <line x1="22" y1="2" x2="11" y2="13"></line>
+                  <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                </svg>
+              </button>
+            </form>
           </div>
         </section>
 
@@ -447,6 +526,12 @@
             <span>Trip Steps</span>
           </button>
         </div>
+
+        <!-- Floating Valley AI Assistant Trigger Button -->
+        <button id="floating-ai-fab" class="floating-ai-fab" type="button" title="Open Valley AI Transit Copilot">
+          <span class="fab-sparkle">✨</span>
+          <span class="fab-text">Ask Valley AI</span>
+        </button>
 
         <div id="map-click-indicator" class="map-click-banner hidden">
           Click any stop on the map to set Origin or Destination
